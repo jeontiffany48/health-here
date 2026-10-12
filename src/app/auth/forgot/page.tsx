@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { AuthLayout } from "@/components/AuthLayout";
-import { getSupabase, supabaseConfigured } from "@/lib/supabase/client";
+import { getEmailLinkClient, supabaseConfigured } from "@/lib/supabase/client";
 
 export default function Forgot() {
   const { t } = useApp();
@@ -18,7 +18,7 @@ export default function Forgot() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    await getSupabase()?.auth.resetPasswordForEmail(email, {
+    await getEmailLinkClient()?.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/confirm`,
     });
     setBusy(false);

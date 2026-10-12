@@ -7,7 +7,7 @@ import { Check, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Logo } from "@/components/Logo";
-import { getSupabase, supabaseConfigured } from "@/lib/supabase/client";
+import { getEmailLinkClient, getSupabase, supabaseConfigured } from "@/lib/supabase/client";
 
 export default function AuthPage() {
   return (
@@ -55,7 +55,7 @@ function AuthInner() {
       if (error) setError(error.message);
       else await refreshSession();
     } else {
-      const { data, error } = await sb.auth.signUp({
+      const { data, error } = await getEmailLinkClient()!.auth.signUp({
         email,
         password: pw,
         options: {
@@ -64,7 +64,11 @@ function AuthInner() {
         },
       });
       if (error) setError(error.message);
-      else if (data.session) await refreshSession();
+      else if (data.session) {
+        // "Confirm email" is off in Supabase: we're signed in right away.
+        await sb.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+        await refreshSession();
+      }
       else {
         setNotice(t("checkEmail"));
         setTab("login");

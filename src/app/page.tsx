@@ -12,9 +12,9 @@ export default function Splash() {
 
   useEffect(() => {
     // Email links that fell back to the bare site address still carry their token — send them on.
-    const qs = window.location.search;
-    if (/[?&]token_hash=/.test(qs)) return router.replace(`/auth/confirm${qs}`);
-    if (/[?&]code=/.test(qs)) return router.replace(`/auth/callback${qs}`);
+    const { search, hash } = window.location;
+    if (/[?&]token_hash=/.test(search) || /access_token=|error=/.test(hash)) return window.location.replace(`/auth/confirm${search}${hash}`);
+    if (/[?&]code=/.test(search)) return router.replace(`/auth/callback${search}`);
     if (mode === "loading") return;
     if (mode === "none") router.replace("/welcome");
     else router.replace(profile.onboarded ? "/home" : "/onboarding");
