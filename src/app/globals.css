@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #c6e47b;        /* lime, primary buttons */
+  --color-brand-strong: #a9cf4f;
+  --color-forest: #1f3d2c;       /* logo / headings */
+  --color-ink: #16211b;
+  --color-muted: #5f6e65;
+  --color-line: #e3e8e1;
+  --color-surface: #f5f7f2;
+  --color-card: #ffffff;
+  --color-sos: #d7262e;
+  --color-sos-dark: #a8161d;
+  --color-ok: #2f7d32;
+  --color-warn: #a15c00;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+html[data-large-text="true"] {
+  font-size: 118.75%; /* 19px base: every rem-based size scales up */
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/* High contrast: stronger text, borders and focus */
+html[data-contrast="high"] {
+  --color-muted: #1d2520;
+  --color-line: #4b5650;
+  --color-brand: #9fd13a;
+  --color-surface: #ffffff;
+}
+html[data-contrast="high"] .card,
+html[data-contrast="high"] .field {
+  border-width: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid #1f3d2c;
+  outline-offset: 2px;
+}
+
+/* Reusable pieces */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none min-h-12;
+}
+.btn-primary {
+  @apply btn bg-brand text-forest hover:bg-brand-strong;
+}
+.btn-ghost {
+  @apply btn border border-line bg-card text-ink hover:bg-surface;
+}
+.btn-danger {
+  @apply btn bg-sos text-white hover:bg-sos-dark;
+}
+.field {
+  @apply flex items-center gap-3 rounded-xl border border-line bg-card px-4 min-h-12 focus-within:border-forest;
+}
+.field input,
+.field select {
+  @apply w-full bg-transparent py-3 outline-none placeholder:text-muted;
+}
+.card {
+  @apply rounded-2xl border border-line bg-card;
+}
+.chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-3.5 min-h-10 text-sm font-medium whitespace-nowrap transition;
+}
+.chip[aria-pressed="true"] {
+  @apply border-forest bg-forest text-white;
+}
+
+/* Leaflet */
+.leaflet-container {
+  font-family: inherit;
+  background: #e9eee6;
+}
+.hh-pin {
+  @apply flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-md;
+  background: var(--color-forest);
+}
+.hh-pin.active {
+  @apply h-10 w-10 text-sm;
+  background: #5a8d1c;
+}
+.hh-pin.er {
+  background: var(--color-sos);
+}
+.hh-me {
+  @apply h-4 w-4 rounded-full border-[3px] border-white;
+  background: #2563eb;
+  box-shadow: 0 0 0 6px rgb(37 99 235 / 0.25);
+}
+
+@keyframes sos-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(215 38 46 / 0.55); }
+  70% { box-shadow: 0 0 0 16px rgb(215 38 46 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(215 38 46 / 0); }
+}
+.sos-pulse {
+  animation: sos-pulse 2.2s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sos-pulse { animation: none; }
+}
