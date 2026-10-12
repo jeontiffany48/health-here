@@ -87,7 +87,11 @@ export function insuranceStatusFor(p: Pick<Place, "acceptedInsurance" | "website
   if (!plan) return "unknown";
   if (p.acceptedInsurance) return p.acceptedInsurance.includes(plan) ? "accepted" : "not_accepted";
   if (p.websiteScan && p.websiteScan.foundInsurancePage) {
-    return p.websiteScan.plans.includes(plan) ? "website_listed" : "website_not_listed";
+    if (p.websiteScan.plans.includes(plan)) return "website_listed";
+    // Only say "not listed" when the page clearly shows a real list (2+ other plans).
+    // Many sites load their plan list with JavaScript or show insurer logos as images; an
+    // empty or tiny result means "we couldn't read it", not "they don't take it".
+    if (p.websiteScan.plans.length >= 2) return "website_not_listed";
   }
   return "unknown";
 }
