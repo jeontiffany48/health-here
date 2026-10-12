@@ -5,6 +5,7 @@ import "server-only";
 import { lookup } from "node:dns/promises";
 import net from "node:net";
 import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL } from "@/lib/supabase/client";
 import { findPlans, INSURANCE_LINK_HINT } from "@/lib/insuranceMatch";
 import type { WebsiteScan } from "@/lib/types";
 
@@ -19,12 +20,12 @@ const CACHE_DAYS = 30;
 const memory = new Map<string, WebsiteScan>();
 
 function adminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = SUPABASE_URL || undefined;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return url && service ? createClient(url, service, { auth: { persistSession: false } }) : null;
 }
 function readClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = SUPABASE_URL || undefined;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return url && anon ? createClient(url, anon, { auth: { persistSession: false } }) : null;
 }

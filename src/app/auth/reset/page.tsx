@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { useApp } from "@/context/AppContext";
@@ -13,18 +14,37 @@ export default function Reset() {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  useEffect(() => {
+    getSupabase()
+      ?.auth.getSession()
+      .then(({ data }) => setHasSession(Boolean(data.session)));
+  }, []);
   const valid = pw.length >= 8 && /\d/.test(pw) && /[a-z]/.test(pw) && /[A-Z]/.test(pw) && pw === pw2;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const { error } = (await getSupabase()?.auth.updateUser({ password: pw })) ?? { error: null };
     if (error) setError(error.message);
-    else router.replace("/home");
+    else {
+      setError(null);
+      router.replace("/home");
+    }
   }
 
   return (
     <AuthLayout>
       <h1 className="text-2xl font-semibold lg:text-3xl">{t("resetTitle")}</h1>
+      {hasSession === false ? (
+        <div className="mt-6 flex flex-col gap-3">
+          <p role="alert" className="rounded-xl bg-[#fde3e3] p-3 text-sm text-sos-dark">
+            {t("linkInvalid")}
+          </p>
+          <Link href="/auth/forgot" className="btn-primary">
+            {t("sendResetLink")}
+          </Link>
+        </div>
+      ) : (
       <form onSubmit={submit} className="mt-6 flex flex-col gap-3">
         <label className="field">
           <Lock className="h-5 w-5 text-muted" aria-hidden />
@@ -42,6 +62,7 @@ export default function Reset() {
           {t("savePassword")}
         </button>
       </form>
+      )}
     </AuthLayout>
   );
 }

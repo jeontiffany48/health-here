@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL } from "@/lib/supabase/client";
 import { distanceKm, directionsUrl } from "@/lib/geo";
 import { samplePlaces, type RawPlace } from "@/lib/sampleData";
 import type { InsuranceStatus, Place, PlaceKind, PlacesResponse } from "@/lib/types";
@@ -168,7 +169,7 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
 
 /** Fill in accepted plans from our own provider_insurance table (null = no data). */
 async function attachInsurance(places: Place[]) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = SUPABASE_URL || undefined;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !anon || places.length === 0) return;
   const sb = createClient(url, anon, { auth: { persistSession: false } });

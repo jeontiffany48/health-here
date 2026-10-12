@@ -28,7 +28,7 @@ function AuthInner() {
   const [pw2, setPw2] = useState("");
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(params.get("error") === "link" ? t("linkInvalid") : null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function AuthInner() {
         password: pw,
         options: {
           data: { full_name: name.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
       if (error) setError(error.message);

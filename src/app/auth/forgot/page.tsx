@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { AuthLayout } from "@/components/AuthLayout";
@@ -12,12 +12,14 @@ export default function Forgot() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [expired, setExpired] = useState(false);
+  useEffect(() => setExpired(new URLSearchParams(window.location.search).get("error") === "link"), []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     await getSupabase()?.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
+      redirectTo: `${window.location.origin}/auth/confirm`,
     });
     setBusy(false);
     setSent(true); // same message either way, so we don't reveal which emails have accounts
@@ -31,6 +33,11 @@ export default function Forgot() {
           <Mail className="h-5 w-5 text-muted" aria-hidden />
           <input required type="email" autoComplete="email" placeholder={t("email")} aria-label={t("email")} value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
+        {expired && !sent && (
+          <p role="alert" className="rounded-xl bg-[#fde3e3] p-3 text-sm text-sos-dark">
+            {t("linkInvalid")}
+          </p>
+        )}
         {sent && (
           <p role="status" className="rounded-xl bg-brand/40 p-3 text-sm text-forest">
             {t("resetSent")}
