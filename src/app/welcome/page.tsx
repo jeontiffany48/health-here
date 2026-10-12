@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, ShieldCheck, Siren } from "lucide-react";
 import { useApp } from "@/context/AppContext";
@@ -17,16 +17,22 @@ const SLIDES: { icon: React.ReactNode; title: DictKey; body: DictKey; tint: stri
 ];
 
 export default function Welcome() {
-  const { t, mode, profile, startGuest, updateProfile } = useApp();
+  const { t, mode, profile, startGuest, updateProfile, exitGuest } = useApp();
   const router = useRouter();
   const [i, setI] = useState(0);
   const last = i === SLIDES.length - 1;
 
+  const startingGuest = useRef(false);
   useEffect(() => {
-    if (mode === "user" || mode === "guest") router.replace(profile.onboarded ? "/home" : "/onboarding");
-  }, [mode, profile.onboarded, router]);
+    if (mode === "user") router.replace(profile.onboarded ? "/home" : "/onboarding");
+    else if (mode === "guest") {
+      if (profile.onboarded) router.replace("/home");
+      else if (!startingGuest.current) exitGuest(); // came back from guest onboarding (e.g. browser Back) — start over here
+    }
+  }, [mode, profile.onboarded, router, exitGuest]);
 
   const guest = () => {
+    startingGuest.current = true;
     startGuest();
     router.push("/onboarding");
   };

@@ -13,7 +13,7 @@ import { LANGUAGES } from "@/lib/i18n";
 const TOTAL = 4;
 
 export default function Onboarding() {
-  const { t, mode, profile, updateProfile } = useApp();
+  const { t, mode, profile, updateProfile, exitGuest } = useApp();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
@@ -44,8 +44,16 @@ export default function Onboarding() {
   return (
     <AuthLayout>
       <div className="flex items-center gap-3">
-        {step > 1 && (
-          <button className="btn-ghost !min-h-11 !px-3" onClick={() => setStep(step - 1)} aria-label={t("back")}>
+        {(step > 1 || mode === "guest") && (
+          <button
+            className="btn-ghost !min-h-11 !px-3"
+            onClick={() => {
+              if (step > 1) return setStep(step - 1);
+              exitGuest(); // first step: leave guest mode and return to the welcome screen
+              router.replace("/welcome");
+            }}
+            aria-label={t("back")}
+          >
             <ChevronLeft className="h-5 w-5" />
           </button>
         )}

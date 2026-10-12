@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Building2, Home, LogOut, Menu, Settings, Siren, Stethoscope, X, UserRound, ShieldCheck } from "lucide-react";
+import { Building2, Home, LogOut, MapPin, Menu, Settings, Siren, Stethoscope, X, UserRound, ShieldCheck } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { insuranceLabel } from "@/lib/insurance";
 import { Logo } from "./Logo";
 import { EmergencyButton, useLogOut } from "./EmergencyButton";
+import { LocationPicker } from "./LocationPicker";
 
 /**
  * Layout for signed-in and guest screens.
  * Phone: top bar + slide-out menu. Desktop (lg+): permanent left sidebar.
  */
 export function AppShell({ children, requireProfile = true, fullHeight = false }: { children: React.ReactNode; requireProfile?: boolean; fullHeight?: boolean }) {
-  const { mode, profile, t } = useApp();
+  const { mode, profile, t, needsLocationPrompt } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const path = usePathname();
@@ -109,7 +110,7 @@ export function AppShell({ children, requireProfile = true, fullHeight = false }
         </div>
       )}
 
-      <main className={`min-w-0 pb-32 md:pb-28 ${fullHeight ? "lg:h-dvh lg:overflow-hidden lg:pb-0" : ""}`}>{ready ? children : <Loading />}</main>
+      <main className={`min-w-0 pb-32 md:pb-28 ${fullHeight ? "lg:h-dvh lg:overflow-hidden lg:pb-0" : ""}`}>{!ready ? <Loading /> : needsLocationPrompt ? <LocationGate /> : children}</main>
       <EmergencyButton withNav />
     </div>
   );
@@ -125,6 +126,22 @@ function NavLink({ href, icon, label, active }: { href: string; icon: React.Reac
       {icon}
       {label}
     </Link>
+  );
+}
+
+/** Asked before showing results: every visit for guests, only when needed for accounts. */
+function LocationGate() {
+  const { t, mode } = useApp();
+  return (
+    <div className="mx-auto flex max-w-md flex-col px-4 py-10 md:py-16">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/60 text-forest">
+        <MapPin className="h-7 w-7" aria-hidden />
+      </span>
+      <h1 className="mt-4 text-2xl font-semibold md:text-3xl">{t("whereSearch")}</h1>
+      <p className="mb-6 mt-1 text-muted">{t("whereSearchBody")}</p>
+      <LocationPicker />
+      {mode === "guest" && <p className="mt-4 text-center text-xs text-muted">{t("guestNote")}</p>}
+    </div>
   );
 }
 

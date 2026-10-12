@@ -14,7 +14,7 @@ const newSession = () => (typeof crypto !== "undefined" && "randomUUID" in crypt
  * with live suggestions (Google Places Autocomplete when the key is set). Saves to the profile.
  */
 export function LocationPicker({ onDone }: { onDone?: () => void }) {
-  const { t, profile, updateProfile, requestDeviceLocation, locStatus, location, locationAccuracy } = useApp();
+  const { t, profile, updateProfile, requestDeviceLocation, locStatus, location, locationAccuracy, confirmLocation } = useApp();
   const [q, setQ] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -29,7 +29,10 @@ export function LocationPicker({ onDone }: { onDone?: () => void }) {
     await updateProfile({ locationMode: "device" });
     const ok = await requestDeviceLocation();
     if (!ok) setErr(t("needLocation"));
-    else onDone?.();
+    else {
+      confirmLocation();
+      onDone?.();
+    }
   }
 
   // Live suggestions (debounced)
@@ -81,6 +84,7 @@ export function LocationPicker({ onDone }: { onDone?: () => void }) {
         label = d.label || label;
       }
       await updateProfile({ locationMode: "manual", manualLocation: { lat: lat!, lng: lng!, label } });
+      confirmLocation();
       session.current = newSession();
       setQ("");
       setSuggestions([]);

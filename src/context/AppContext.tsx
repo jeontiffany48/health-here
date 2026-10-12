@@ -24,6 +24,9 @@ type Ctx = {
   locationAccuracy: number | null;
   locStatus: LocStatus;
   requestDeviceLocation: () => Promise<boolean>;
+  /** Guests confirm their location every time the app opens; accounts reuse their saved choice. */
+  needsLocationPrompt: boolean;
+  confirmLocation: () => void;
   t: (key: DictKey, vars?: Record<string, string | number>) => string;
 };
 
@@ -90,6 +93,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceLoc, setDeviceLoc] = useState<(LatLng & { accuracy: number }) | null>(null);
   const watchRef = useRef<number | null>(null);
   const [locStatus, setLocStatus] = useState<LocStatus>("idle");
+  // In memory only: resets on every visit/reload, so guests are asked again each time.
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const confirmLocation = useCallback(() => setLocationConfirmed(true), []);
   const profileRef = useRef(profile);
   profileRef.current = profile;
 
@@ -160,6 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const exitGuest = useCallback(() => {
+    setLocationConfirmed(false);
     safeSet("session", GUEST_KEY, null);
     setProfile({ ...DEFAULT_PROFILE, language: profileRef.current.language });
     setDeviceLoc(null);
@@ -249,7 +256,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Once a profile is ready, get the device location automatically if that's the chosen mode.
   useEffect(() => {
-    if ((mode === "user" || mode === "guest") && profile.onboarded && profile.locationMode === "device" && locStatus === "idle") {
+    // Accounts only — guests are asked every visit (see needsLocationPrompt).
+    if (mode === "user" && profile.onboarded && profile.locationMode === "device" && locStatus === "idle") {
       requestDeviceLocation();
     }
   }, [mode, profile.onboarded, profile.locationMode, locStatus, requestDeviceLocation]);
@@ -258,6 +266,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const location = manual ? { lat: manual.lat, lng: manual.lng } : deviceLoc ?? profile.manualLocation ?? null;
   const locationLabel = manual?.label ?? (deviceLoc ? null : profile.manualLocation?.label ?? null);
   const locationAccuracy = manual || !deviceLoc ? null : deviceLoc.accuracy;
+
+  const needsLocationPrompt =
+    profile.onboarded &&
+    ((mode === "guest" && !locationConfirmed) ||
+      // accounts: only when we truly have no location (e.g. permission was turned off)
+      (mode === "user" && !location && (locStatus === "denied" || locStatus === "unavailable")));
 
   const t = useCallback((key: DictKey, vars?: Record<string, string | number>) => translate(profile.language, key, vars), [profile.language]);
 
@@ -277,10 +291,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       locationAccuracy,
       locStatus: manual ? "ok" : locStatus,
       requestDeviceLocation,
+      needsLocationPrompt,
+      confirmLocation,
       t,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, t],
+    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, needsLocationPrompt, confirmLocation, t],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
