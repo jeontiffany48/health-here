@@ -24,7 +24,7 @@ export default function EmergencyPage() {
 }
 
 function Emergency() {
-  const { t, profile, location, locationAccuracy, locStatus, requestDeviceLocation } = useApp();
+  const { t, profile, location, locationAccuracy, locStatus, requestDeviceLocation, deviceLocationOn } = useApp();
   const [address, setAddress] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { data, loading, scanning } = usePlaces("er", "", location, profile.insurance);
@@ -33,8 +33,8 @@ function Emergency() {
 
   // Ask for location right away if we don't have it — every second counts here.
   useEffect(() => {
-    if (!location && locStatus === "idle") requestDeviceLocation();
-  }, [location, locStatus, requestDeviceLocation]);
+    if (!location && locStatus === "idle" && deviceLocationOn) requestDeviceLocation();
+  }, [location, locStatus, requestDeviceLocation, deviceLocationOn]);
 
   useEffect(() => {
     if (!location) return;

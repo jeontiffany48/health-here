@@ -12,14 +12,14 @@ import { LANGUAGES } from "@/lib/i18n";
 
 export default function SettingsPage() {
   return (
-    <AppShell>
+    <AppShell locationGate={false}>
       <Settings />
     </AppShell>
   );
 }
 
 function Settings() {
-  const { t, mode, email, profile, updateProfile, signOut, exitGuest, deleteAccount } = useApp();
+  const { t, mode, email, profile, updateProfile, signOut, exitGuest, deleteAccount, deviceLocationOn, turnOffDeviceLocation, requestDeviceLocation } = useApp();
   const router = useRouter();
   const [name, setName] = useState(profile.fullName);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -104,8 +104,20 @@ function Settings() {
 
         <div id="location" className="md:col-span-2">
           <Section title={t("obLocTitle")}>
-            <p className="mb-3 text-sm text-muted">{t("obLocBody")}</p>
+            <Toggle
+              label={t("useDeviceLocation")}
+              checked={deviceLocationOn}
+              onChange={async (on) => {
+                if (on) {
+                  await updateProfile({ locationMode: "device" });
+                  await requestDeviceLocation();
+                } else await turnOffDeviceLocation();
+                flash();
+              }}
+            />
+            <p className="mb-4 text-sm text-muted">{deviceLocationOn ? t("obLocBody") : t("locationOffNote")}</p>
             <LocationPicker />
+            <p className="mt-3 text-xs text-muted">{t("browserPermissionNote")}</p>
           </Section>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, LocateFixed, MapPin, Search, X } from "lucide-react";
+import { Loader2, LocateFixed, LocateOff, MapPin, Search, X } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { formatAccuracy } from "@/lib/geo";
 
@@ -14,7 +14,7 @@ const newSession = () => (typeof crypto !== "undefined" && "randomUUID" in crypt
  * with live suggestions (Google Places Autocomplete when the key is set). Saves to the profile.
  */
 export function LocationPicker({ onDone }: { onDone?: () => void }) {
-  const { t, profile, updateProfile, requestDeviceLocation, locStatus, location, locationAccuracy, confirmLocation } = useApp();
+  const { t, profile, updateProfile, requestDeviceLocation, locStatus, location, locationAccuracy, confirmLocation, deviceLocationOn, turnOffDeviceLocation } = useApp();
   const [q, setQ] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [searching, setSearching] = useState(false);
@@ -104,6 +104,16 @@ export function LocationPicker({ onDone }: { onDone?: () => void }) {
       {deviceOn && locationAccuracy != null && (
         <p className={`-mt-1 text-center text-xs ${locationAccuracy > 500 ? "text-warn" : "text-muted"}`}>
           {locationAccuracy > 500 ? t("approxWarn", { d: formatAccuracy(locationAccuracy, profile.language) }) : t("accurateTo", { d: formatAccuracy(locationAccuracy, profile.language) })}
+        </p>
+      )}
+
+      {deviceLocationOn ? (
+        <button type="button" onClick={() => turnOffDeviceLocation()} className="-mt-1 inline-flex items-center justify-center gap-1.5 self-center text-sm font-medium text-muted underline underline-offset-4">
+          <LocateOff className="h-4 w-4" aria-hidden /> {t("turnOffLocation")}
+        </button>
+      ) : (
+        <p className="-mt-1 flex items-center justify-center gap-1.5 text-center text-xs text-muted">
+          <LocateOff className="h-4 w-4 shrink-0" aria-hidden /> {t("locationOffNote")}
         </p>
       )}
 

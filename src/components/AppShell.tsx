@@ -14,7 +14,7 @@ import { LocationPicker } from "./LocationPicker";
  * Layout for signed-in and guest screens.
  * Phone: top bar + slide-out menu. Desktop (lg+): permanent left sidebar.
  */
-export function AppShell({ children, requireProfile = true, fullHeight = false }: { children: React.ReactNode; requireProfile?: boolean; fullHeight?: boolean }) {
+export function AppShell({ children, requireProfile = true, fullHeight = false, locationGate = true }: { children: React.ReactNode; requireProfile?: boolean; fullHeight?: boolean; locationGate?: boolean }) {
   const { mode, profile, t, needsLocationPrompt } = useApp();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -110,7 +110,7 @@ export function AppShell({ children, requireProfile = true, fullHeight = false }
         </div>
       )}
 
-      <main className={`min-w-0 pb-32 md:pb-28 ${fullHeight ? "lg:h-dvh lg:overflow-hidden lg:pb-0" : ""}`}>{!ready ? <Loading /> : needsLocationPrompt ? <LocationGate /> : children}</main>
+      <main className={`min-w-0 pb-32 md:pb-28 ${fullHeight ? "lg:h-dvh lg:overflow-hidden lg:pb-0" : ""}`}>{!ready ? <Loading /> : needsLocationPrompt && locationGate && requireProfile ? <LocationGate /> : children}</main>
       <EmergencyButton withNav />
     </div>
   );
@@ -129,7 +129,7 @@ function NavLink({ href, icon, label, active }: { href: string; icon: React.Reac
   );
 }
 
-/** Asked before showing results: every visit for guests, only when needed for accounts. */
+/** Asked before showing results: every visit for guests, only when needed for accounts. Never on the emergency screen. */
 function LocationGate() {
   const { t, mode } = useApp();
   return (

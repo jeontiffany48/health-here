@@ -27,6 +27,9 @@ type Ctx = {
   /** Guests confirm their location every time the app opens; accounts reuse their saved choice. */
   needsLocationPrompt: boolean;
   confirmLocation: () => void;
+  /** Device location switch. Off = the app never reads GPS; searches use a typed address. */
+  deviceLocationOn: boolean;
+  turnOffDeviceLocation: () => Promise<void>;
   t: (key: DictKey, vars?: Record<string, string | number>) => string;
 };
 
@@ -271,7 +274,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     profile.onboarded &&
     ((mode === "guest" && !locationConfirmed) ||
       // accounts: only when we truly have no location (e.g. permission was turned off)
-      (mode === "user" && !location && (locStatus === "denied" || locStatus === "unavailable")));
+      (mode === "user" && !location && (profile.locationMode === "manual" || locStatus === "denied" || locStatus === "unavailable")));
+
+  const deviceLocationOn = profile.locationMode === "device";
+  // "Off" is stored as locationMode = "manual" (with or without a saved address), so no database change is needed.
+  const turnOffDeviceLocation = useCallback(async () => {
+    if (watchRef.current != null) navigator.geolocation?.clearWatch(watchRef.current);
+    watchRef.current = null;
+    setDeviceLoc(null);
+    setLocStatus("idle");
+    await updateProfile({ locationMode: "manual" });
+  }, [updateProfile]);
 
   const t = useCallback((key: DictKey, vars?: Record<string, string | number>) => translate(profile.language, key, vars), [profile.language]);
 
@@ -293,10 +306,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       requestDeviceLocation,
       needsLocationPrompt,
       confirmLocation,
+      deviceLocationOn,
+      turnOffDeviceLocation,
       t,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, needsLocationPrompt, confirmLocation, t],
+    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, needsLocationPrompt, confirmLocation, deviceLocationOn, turnOffDeviceLocation, t],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
