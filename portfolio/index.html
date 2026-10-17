@@ -96,6 +96,7 @@
 
   /* Phone frame */
   .phone { background: var(--ink); padding: 10px; border-radius: 46px; box-shadow: 0 30px 60px -20px rgba(22, 33, 27, 0.35); }
+  .phone .screen img { border-radius: 0; }
   .phone img { border-radius: 36px; aspect-ratio: 390 / 844; width: 100%; height: auto; object-fit: cover; object-position: top; background: #fff; }
   .phone.cropped img { aspect-ratio: 390 / 700; }
 
@@ -127,24 +128,18 @@
   @media (max-width: 960px) { .steps { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
 
-  /* See it in action: looping clips */
-  .demo { padding-top: 88px; }
-  .clips { margin-top: 44px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
-  .clip { margin: 0; }
-  .clip .phone { position: relative; padding: 8px; border-radius: 38px; }
-  .clip video { display: block; width: 100%; height: auto; aspect-ratio: 600 / 1298; border-radius: 30px; background: #fff; }
-  .clip-toggle { position: absolute; right: -8px; top: -8px; width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--paper); background: var(--forest); color: #fff; display: grid; place-items: center; cursor: pointer; }
-  .clip-toggle:hover { background: var(--ink); }
-  .clip-toggle svg { width: 16px; height: 16px; }
-  .clip figcaption { margin-top: 18px; color: var(--ink); font-size: 1rem; max-width: none; }
-  .clip figcaption strong { display: block; font-family: var(--display); color: var(--forest); font-size: 1.15rem; font-weight: 650; margin-bottom: 4px; }
-  .clip figcaption span { color: var(--muted); }
-  .demo-note { margin-top: 28px; font-size: 0.95rem; color: var(--muted); }
-  @media (max-width: 1000px) { .clips { grid-template-columns: repeat(2, minmax(0, 300px)); justify-content: center; gap: 40px 32px; } }
-  @media (max-width: 560px) {
-    .clips { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 20px; margin-left: -20px; margin-right: -20px; padding: 4px 20px 12px; -webkit-overflow-scrolling: touch; }
-    .clip { flex: 0 0 74%; scroll-snap-align: center; }
-  }
+  /* Hover (or tap) a phone to play its recording */
+  .playable { position: relative; cursor: pointer; }
+  .playable .screen { position: relative; border-radius: 36px; overflow: hidden; }
+  .playable video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; transition: opacity .2s; background: #fff; }
+  .playable.is-playing video { opacity: 1; }
+  .play-hint { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 12px; border: 0; border-radius: 999px; background: rgba(22, 33, 27, 0.86); color: #fff; font: 700 0.95rem/1 var(--body); white-space: nowrap; cursor: pointer; }
+  .play-hint svg { width: 14px; height: 14px; }
+  .playable.is-playing .play-hint { opacity: 0; pointer-events: none; }
+  .playable.is-playing.paused-by-tap .play-hint { opacity: 1; pointer-events: auto; }
+  .hint-touch { display: none; }
+  @media (hover: none) { .hint-hover { display: none; } .hint-touch { display: inline; } }
+  .sos .play-hint { background: rgba(120, 10, 16, 0.9); }
 
   /* Features: alternating rows */
   .feature { display: grid; grid-template-columns: 1fr 320px; gap: 72px; align-items: center; padding: 56px 0; }
@@ -217,7 +212,6 @@
     <nav aria-label="Sections">
       <a href="#problem">Why</a>
       <a href="#process">Process</a>
-      <a href="#demo">Demo</a>
       <a href="#features">Features</a>
       <a href="#built">How it works</a>
     </nav>
@@ -287,62 +281,11 @@
     </div>
   </section>
 
-  <section class="demo" id="demo" aria-labelledby="demo-title">
-    <div class="wrap">
-      <div class="section-intro">
-        <h2 id="demo-title">See it in action</h2>
-        <p>Short recordings of the real app on a phone. Each one plays when you scroll to it.</p>
-      </div>
-      <div class="clips">
-        <figure class="clip">
-          <div class="phone">
-            <video muted loop playsinline preload="metadata" poster="video/get-started.jpg" aria-label="Screen recording: tapping through the intro, continuing as a guest, typing a name, searching for and choosing Aetna insurance, choosing English, and turning on location to reach the home screen.">
-              <source src="video/get-started.webm" type="video/webm" />
-              <source src="video/get-started.mp4" type="video/mp4" />
-            </video>
-            <button class="clip-toggle" type="button" aria-label="Pause video"></button>
-          </div>
-          <figcaption><strong>Get started</strong><span>Continue as a guest, search for your insurance, pick a language and share your location.</span></figcaption>
-        </figure>
-        <figure class="clip">
-          <div class="phone">
-            <video muted loop playsinline preload="metadata" poster="video/find-care.jpg" aria-label="Screen recording: opening hospitals and clinics, turning the Takes my insurance filter on and off, expanding a clinic's weekly hours, then going back home and tapping Cardiology to see cardiologists.">
-              <source src="video/find-care.webm" type="video/webm" />
-              <source src="video/find-care.mp4" type="video/mp4" />
-            </video>
-            <button class="clip-toggle" type="button" aria-label="Pause video"></button>
-          </div>
-          <figcaption><strong>Find care that takes your plan</strong><span>Open hospitals and clinics, filter to places that take your insurance, check today's hours, then jump to cardiologists.</span></figcaption>
-        </figure>
-        <figure class="clip">
-          <div class="phone">
-            <video muted loop playsinline preload="metadata" poster="video/emergency.jpg" aria-label="Screen recording: tapping the red ER/911 button opens the emergency screen with a large Call 911 button and the user's address.">
-              <source src="video/emergency.webm" type="video/webm" />
-              <source src="video/emergency.mp4" type="video/mp4" />
-            </video>
-            <button class="clip-toggle" type="button" aria-label="Pause video"></button>
-          </div>
-          <figcaption><strong>Help in one tap</strong><span>The red button opens the emergency screen with Call 911 and your address, ready to read out.</span></figcaption>
-        </figure>
-        <figure class="clip">
-          <div class="phone">
-            <video muted loop playsinline preload="metadata" poster="video/readable.jpg" aria-label="Screen recording: in Settings, turning on larger text and high contrast, then switching the app to Spanish and Korean and back to English.">
-              <source src="video/readable.webm" type="video/webm" />
-              <source src="video/readable.mp4" type="video/mp4" />
-            </video>
-            <button class="clip-toggle" type="button" aria-label="Pause video"></button>
-          </div>
-          <figcaption><strong>Make it readable</strong><span>Turn on larger text and high contrast, then switch between English, Spanish and Korean.</span></figcaption>
-        </figure>
-      </div>
-      <p class="demo-note">Recorded on a test copy of the app with example places, so no real patient or clinic data is shown.</p>
-    </div>
-  </section>
-
   <section id="features" aria-labelledby="features-title">
     <div class="wrap">
       <div class="section-intro">
         <h2 id="features-title">What it does</h2>
+        <p>Hover over a phone (or tap it) to watch a short recording of the real app, made with example places.</p>
       </div>
 
       <article class="feature">
@@ -354,7 +297,7 @@
             <li>A perfect 5.0 from two reviews doesn't outrank a 4.6 from nine hundred.</li>
           </ul>
         </div>
-        <div class="phone"><img src="img/doctors.webp" width="390" height="844" loading="lazy" alt="Doctors and specialists screen filtered to cardiology, showing a searching-near address with its accuracy and a cardiologist whose website lists the user's insurance." /></div>
+        <div class="phone playable" data-clip><div class="screen"><img src="img/doctors.webp" width="390" height="844" loading="lazy" alt="Doctors and specialists screen filtered to cardiology, showing a searching-near address with its accuracy and a cardiologist whose website lists the user's insurance." /><video muted loop playsinline preload="none" aria-label="Screen recording: opening hospitals and clinics, filtering to places that take your insurance, opening a clinic’s hours, then tapping Cardiology to see cardiologists."><source src="video/find-care.webm" type="video/webm" /><source src="video/find-care.mp4" type="video/mp4" /></video></div><button class="play-hint" type="button" aria-label="Play recording: Screen recording: opening hospitals and clinics, filtering to places that take your insurance, opening a clinic’s hours, then tapping Cardiology to see cardiologists."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span class="hint-hover">Hover to play</span><span class="hint-touch">Tap to play</span></button></div>
       </article>
 
       <article class="feature">
@@ -366,7 +309,7 @@
             <li>If the page couldn't be read, it says "call to confirm" instead of guessing.</li>
           </ul>
         </div>
-        <div class="phone"><img src="img/insurance.webp" width="390" height="844" loading="lazy" alt="Onboarding step two: a searchable list of insurance plans grouped by type, filtered to Aetna." /></div>
+        <div class="phone playable" data-clip><div class="screen"><img src="img/insurance.webp" width="390" height="844" loading="lazy" alt="Onboarding step two: a searchable list of insurance plans grouped by type, filtered to Aetna." /><video muted loop playsinline preload="none" aria-label="Screen recording: continuing as a guest, typing a name, searching for and choosing Aetna, choosing English, and turning on location."><source src="video/get-started.webm" type="video/webm" /><source src="video/get-started.mp4" type="video/mp4" /></video></div><button class="play-hint" type="button" aria-label="Play recording: Screen recording: continuing as a guest, typing a name, searching for and choosing Aetna, choosing English, and turning on location."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span class="hint-hover">Hover to play</span><span class="hint-touch">Tap to play</span></button></div>
       </article>
 
       <article class="feature">
@@ -379,7 +322,7 @@
             <li>Accounts can be deleted for good, right from Settings.</li>
           </ul>
         </div>
-        <div class="phone"><img src="img/settings-ko.webp" width="390" height="844" loading="lazy" alt="Settings screen in Korean with larger text turned on, showing the insurance picker and language buttons for English, Spanish and Korean." /></div>
+        <div class="phone playable" data-clip><div class="screen"><img src="img/settings-ko.webp" width="390" height="844" loading="lazy" alt="Settings screen in Korean with larger text turned on, showing the insurance picker and language buttons for English, Spanish and Korean." /><video muted loop playsinline preload="none" aria-label="Screen recording: in Settings, turning on larger text and high contrast, then switching to Spanish and Korean and back to English."><source src="video/readable.webm" type="video/webm" /><source src="video/readable.mp4" type="video/mp4" /></video></div><button class="play-hint" type="button" aria-label="Play recording: Screen recording: in Settings, turning on larger text and high contrast, then switching to Spanish and Korean and back to English."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span class="hint-hover">Hover to play</span><span class="hint-touch">Tap to play</span></button></div>
       </article>
 
       <figure class="wide">
@@ -401,7 +344,7 @@
           <li><strong>The nearest emergency rooms</strong><span>Sorted by distance only. In an emergency, closest wins.</span></li>
         </ul>
       </div>
-      <div class="phone"><img src="img/emergency.webp" width="390" height="844" loading="lazy" alt="Emergency screen: a large red Call 911 button, the user's street address and coordinates to read to the dispatcher, buttons to text 911 or share location, and tips for while you wait." /></div>
+      <div class="phone playable" data-clip><div class="screen"><img src="img/emergency.webp" width="390" height="844" loading="lazy" alt="Emergency screen: a large red Call 911 button, the user's street address and coordinates to read to the dispatcher, buttons to text 911 or share location, and tips for while you wait." /><video muted loop playsinline preload="none" aria-label="Screen recording: tapping the red ER/911 button opens the emergency screen with Call 911 and the user’s address."><source src="video/emergency.webm" type="video/webm" /><source src="video/emergency.mp4" type="video/mp4" /></video></div><button class="play-hint" type="button" aria-label="Play recording: Screen recording: tapping the red ER/911 button opens the emergency screen with Call 911 and the user’s address."><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg><span class="hint-hover">Hover to play</span><span class="hint-touch">Tap to play</span></button></div>
     </div>
   </section>
 
@@ -495,32 +438,35 @@
 </footer>
 
 <script>
-  // Looping clips: play only while on screen, pause button on each, and no autoplay for reduced-motion users.
-  (() => {
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z" fill="currentColor"/></svg>';
-    const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"/></svg>';
-    document.querySelectorAll(".clip").forEach((clip) => {
-      const video = clip.querySelector("video");
-      const btn = clip.querySelector(".clip-toggle");
-      let userPaused = reduce;
-      let visible = false;
-      const render = () => {
-        const playing = !video.paused;
-        btn.innerHTML = playing ? PAUSE : PLAY;
-        btn.setAttribute("aria-label", playing ? "Pause video" : "Play video");
-      };
-      const sync = () => { if (visible && !userPaused) video.play().catch(() => {}); else video.pause(); };
-      video.addEventListener("play", render);
-      video.addEventListener("pause", render);
-      btn.addEventListener("click", () => {
-        userPaused = !video.paused;
-        if (userPaused) video.pause(); else video.play().catch(() => {});
-      });
-      new IntersectionObserver(([e]) => { visible = e.isIntersecting; sync(); }, { threshold: 0.55 }).observe(video);
-      render();
+  // Recordings play only on hover (mouse) or tap (touch); the still screenshot shows otherwise.
+  document.querySelectorAll("[data-clip]").forEach((el) => {
+    const video = el.querySelector("video");
+    const hint = el.querySelector(".play-hint");
+    const play = () => {
+      el.classList.remove("paused-by-tap");
+      video.currentTime = 0;
+      el.classList.add("is-playing");
+      video.play().catch(() => el.classList.remove("is-playing"));
+    };
+    const stop = () => {
+      video.pause();
+      el.classList.remove("is-playing", "paused-by-tap");
+      video.currentTime = 0;
+    };
+    const hoverCapable = matchMedia("(hover: hover)").matches;
+    if (hoverCapable) {
+      el.addEventListener("mouseenter", play);
+      el.addEventListener("mouseleave", stop);
+    }
+    // Tap / click / keyboard: toggle
+    el.addEventListener("click", (e) => {
+      if (hoverCapable && e.pointerType === "mouse") return; // mouse already handled by hover
+      if (el.classList.contains("is-playing") && !video.paused) { video.pause(); el.classList.add("paused-by-tap"); }
+      else play();
     });
-  })();
+    hint.addEventListener("keydown", (e) => { if (e.key === "Escape") stop(); });
+    video.addEventListener("ended", stop);
+  });
 </script>
 </body>
 </html>
