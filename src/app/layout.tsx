@@ -4,6 +4,8 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import { BackToApp } from "@/components/BackToApp";
+import { UpdateCheck } from "@/components/UpdateCheck";
+import { FavoritesProvider } from "@/context/FavoritesContext";
 
 
 export const metadata: Metadata = {
@@ -24,8 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${GeistSans.variable} antialiased`}>
         <AppProvider>
-          {children}
-          <BackToApp />
+          <FavoritesProvider>
+            {children}
+            <BackToApp />
+            <UpdateCheck />
+          </FavoritesProvider>
         </AppProvider>
       </body>
     </html>

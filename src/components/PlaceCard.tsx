@@ -7,9 +7,34 @@ import { formatDistance } from "@/lib/geo";
 import { insuranceLabel } from "@/lib/insurance";
 import type { Place } from "@/lib/types";
 import { liveHours, useNow } from "@/lib/hours";
+import { useFavorites } from "@/context/FavoritesContext";
 
-export function PlaceCard({ place, index, active, onSelect, er = false, checking = false, kind = "facility" }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean; kind?: "facility" | "doctor" }) {
+export function PlaceCard({
+  place,
+  index,
+  active,
+  onSelect,
+  er = false,
+  checking = false,
+  kind = "facility",
+  star = true,
+  sample = false,
+}: {
+  place: Place;
+  index: number;
+  active?: boolean;
+  onSelect?: () => void;
+  er?: boolean;
+  checking?: boolean;
+  kind?: "facility" | "doctor";
+  /** Show the ☆ save button. */
+  star?: boolean;
+  /** Sample data (no Google key) — saved on this device only. */
+  sample?: boolean;
+}) {
   const { t, profile } = useApp();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const saved = isFavorite(place.id);
   const now = useNow();
   const live = liveHours(place, now, profile.language);
   const todayLine = place.weekHours[live.todayIndex]?.replace(/^[^:]+:\s*/, "") ?? place.todayHours;
@@ -26,13 +51,30 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
       <div className="flex gap-3">
         <PlaceThumb index={index} er={er} kind={kind} />
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold leading-snug">{place.name}</h3>
+          <div className="flex items-start gap-2">
+            <h3 className="min-w-0 flex-1 font-semibold leading-snug">{place.name}</h3>
+            {star && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(place, er ? "er" : kind, sample);
+                }}
+                aria-pressed={saved}
+                aria-label={saved ? t("unsavePlace", { name: place.name }) : t("savePlace", { name: place.name })}
+                title={saved ? t("saved") : t("save")}
+                className="-mr-2 -mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition hover:bg-surface"
+              >
+                <Star className={`h-6 w-6 transition ${saved ? "fill-[#f5b301] text-[#f5b301]" : "text-muted"}`} aria-hidden />
+              </button>
+            )}
+          </div>
           <p className="text-sm text-muted">
             {[place.category, place.address].filter(Boolean).join(" · ")}
           </p>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="font-medium">{t("away", { d: formatDistance(place.distanceKm, profile.language) })}</span>
+            {Number.isFinite(place.distanceKm) && <span className="font-medium">{t("away", { d: formatDistance(place.distanceKm, profile.language) })}</span>}
             {place.rating != null ? (
               <span className="inline-flex items-center gap-1" aria-label={`Rating ${place.rating} out of 5`}>
                 <Star className="h-4 w-4 fill-[#f5b301] text-[#f5b301]" aria-hidden />

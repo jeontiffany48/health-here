@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { sortPlacesMulti, type SortMode } from "@/lib/ranking";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpDown, Building2, Check, List, Map as MapIcon, Stethoscope } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Building2, Check, List, Map as MapIcon, Star, Stethoscope } from "lucide-react";
+import { useFavorites } from "@/context/FavoritesContext";
 import { LocationBar } from "./LocationBar";
 import { useApp } from "@/context/AppContext";
 import { PlaceCard } from "./PlaceCard";
@@ -24,6 +25,7 @@ type Kind = "facility" | "doctor";
 /** Locator screen for one kind of place. Always has a clear way back to the home dashboard. */
 export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecialty?: string }) {
   const { t, profile, location, locationAccuracy, locStatus } = useApp();
+  const { favorites } = useFavorites();
   const router = useRouter();
   const [specialty, setSpecialty] = useState<string>(
     SPECIALTIES.some((s) => s.id === initialSpecialty) ? initialSpecialty! : SPECIALTIES[0].id,
@@ -86,6 +88,11 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
             {kind === "facility" ? <Building2 className="h-7 w-7 text-forest" aria-hidden /> : <Stethoscope className="h-7 w-7 text-forest" aria-hidden />}
             {kind === "facility" ? t("facilities") : t("doctors")}
           </h1>
+          <Link href="/saved" className="chip ml-auto shrink-0" aria-label={t("savedPlaces")}>
+            <Star className={`h-4 w-4 ${favorites.length ? "fill-[#f5b301] text-[#f5b301]" : ""}`} aria-hidden />
+            <span className="hidden sm:inline">{t("saved")}</span>
+            {favorites.length > 0 && <span>{favorites.length}</span>}
+          </Link>
         </div>
         {profile.insurance && <p className="mt-2 text-sm text-muted">{`${t("yourPlan")}: ${insuranceLabel(profile.insurance)}`}</p>}
         <LocationBar className="mt-3 lg:max-w-2xl" />
@@ -179,7 +186,7 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
                 ) : (
                   <div className={`flex flex-col gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
                     {places.map((p, i) => (
-                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} kind={kind} />
+                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} kind={kind} sample={data?.source === "sample"} />
                     ))}
                   </div>
                 )}

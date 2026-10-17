@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Building2, Home, LogOut, MapPin, Menu, Settings, Siren, Stethoscope, X, UserRound, ShieldCheck } from "lucide-react";
+import { Building2, Home, LogOut, MapPin, Menu, Settings, Siren, Star, Stethoscope, X, UserRound, ShieldCheck } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { insuranceLabel } from "@/lib/insurance";
 import { Logo } from "./Logo";
@@ -42,6 +42,7 @@ export function AppShell({ children, requireProfile = true, fullHeight = false, 
       <NavLink href="/home" icon={<Home className="h-5 w-5" />} label={t("home")} active={path === "/home"} />
       <NavLink href="/find/facilities" icon={<Building2 className="h-5 w-5" />} label={t("facilities")} active={path === "/find/facilities"} />
       <NavLink href="/find/doctors" icon={<Stethoscope className="h-5 w-5" />} label={t("doctors")} active={path === "/find/doctors"} />
+      <NavLink href="/saved" icon={<Star className="h-5 w-5" />} label={t("savedPlaces")} active={path === "/saved"} />
       <NavLink href="/emergency" icon={<Siren className="h-5 w-5 text-sos" />} label={t("emergency")} active={path === "/emergency"} />
       <NavLink href="/settings" icon={<Settings className="h-5 w-5" />} label={t("settings")} active={path === "/settings"} />
     </nav>

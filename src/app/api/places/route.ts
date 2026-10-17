@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { SUPABASE_URL } from "@/lib/supabase/client";
 import { distanceKm, directionsUrl } from "@/lib/geo";
 import { samplePlaces, type RawPlace } from "@/lib/sampleData";
-import type { InsuranceStatus, Period, Place, PlaceKind, PlacesResponse } from "@/lib/types";
+import type { Place, PlaceKind, PlacesResponse } from "@/lib/types";
+import { PLACE_FIELDS, attachInsurance, toPlace, type GPlace } from "@/lib/server/googlePlace";
 import { insuranceStatusFor } from "@/lib/insuranceMatch";
 import { getCachedScans } from "@/lib/server/websiteScanner";
 
@@ -98,25 +97,6 @@ function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: numb
 }
 
 // ---------- Google Places API (New) ----------
-type GPlace = {
-  id: string;
-  displayName?: { text: string };
-  formattedAddress?: string;
-  shortFormattedAddress?: string;
-  location?: { latitude: number; longitude: number };
-  rating?: number;
-  userRatingCount?: number;
-  currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[]; periods?: Period[] };
-  regularOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[]; periods?: Period[] };
-  utcOffsetMinutes?: number;
-  nationalPhoneNumber?: string;
-  websiteUri?: string;
-  primaryTypeDisplayName?: { text: string };
-  primaryType?: string;
-  types?: string[];
-  businessStatus?: string;
-};
-
 async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat: number; lng: number }, jsDow: number): Promise<Place[]> {
   const textQuery =
     kind === "er" ? "hospital emergency room" : kind === "doctor" ? q || "primary care doctor" : "hospital or medical clinic or urgent care";
@@ -125,24 +105,7 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
     headers: {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": [
-        "places.id",
-        "places.displayName",
-        "places.formattedAddress",
-        "places.shortFormattedAddress",
-        "places.location",
-        "places.rating",
-        "places.userRatingCount",
-        "places.currentOpeningHours",
-        "places.regularOpeningHours",
-        "places.nationalPhoneNumber",
-        "places.websiteUri",
-        "places.primaryTypeDisplayName",
-        "places.primaryType",
-        "places.types",
-        "places.businessStatus",
-        "places.utcOffsetMinutes",
-      ].join(","),
+      "X-Goog-FieldMask": PLACE_FIELDS.map((f) => `places.${f}`).join(","),
     },
     body: JSON.stringify({
       textQuery,
@@ -157,53 +120,6 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
 
   return (data.places ?? [])
     .filter((g) => g.location && g.businessStatus !== "CLOSED_PERMANENTLY" && g.businessStatus !== "CLOSED_TEMPORARILY")
-    .map((g, i) => {
-      const loc = { lat: g.location!.latitude, lng: g.location!.longitude };
-      const hours = g.currentOpeningHours ?? g.regularOpeningHours;
-      const week = hours?.weekdayDescriptions ?? [];
-      const today = week[(jsDow + 6) % 7];
-      return {
-        id: g.id,
-        name: g.displayName?.text ?? "Unnamed",
-        address: g.shortFormattedAddress ?? g.formattedAddress ?? "",
-        location: loc,
-        distanceKm: distanceKm(center, loc),
-        rating: g.rating ?? null,
-        ratingCount: g.userRatingCount ?? null,
-        openNow: hours?.openNow ?? null,
-        todayHours: today ? today.replace(/^[^:]+:\s*/, "") : null,
-        weekHours: week,
-        phone: g.nationalPhoneNumber ?? null,
-        mapsUrl: directionsUrl(loc, g.id),
-        category: g.primaryTypeDisplayName?.text ?? (kind === "er" ? "Hospital" : ""),
-        acceptedInsurance: null,
-        website: g.websiteUri ?? null,
-        websiteScan: null,
-        insuranceStatus: "unknown" as InsuranceStatus,
-        rank: i,
-        primaryType: g.primaryType ?? null,
-        types: g.types ?? [],
-        periods: hours?.periods?.length ? hours.periods.map((p) => ({ open: pick(p.open), ...(p.close ? { close: pick(p.close) } : {}) })) : null,
-        utcOffsetMinutes: g.utcOffsetMinutes ?? null,
-      };
-    })
+    .map((g, i) => toPlace(g, kind, center, jsDow, i))
     .filter((p) => p.distanceKm < 40);
-}
-
-const pick = (x: Period["open"]) => ({ day: x.day, hour: x.hour, minute: x.minute });
-
-/** Fill in accepted plans from our own provider_insurance table (null = no data). */
-async function attachInsurance(places: Place[]) {
-  const url = SUPABASE_URL || undefined;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !anon || places.length === 0) return;
-  const sb = createClient(url, anon, { auth: { persistSession: false } });
-  const { data, error } = await sb
-    .from("provider_insurance")
-    .select("place_id, insurance_id")
-    .in("place_id", places.map((p) => p.id));
-  if (error || !data) return;
-  const map = new Map<string, string[]>();
-  for (const r of data) map.set(r.place_id, [...(map.get(r.place_id) ?? []), r.insurance_id]);
-  for (const p of places) p.acceptedInsurance = map.get(p.id) ?? null;
 }

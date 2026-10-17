@@ -80,3 +80,18 @@ alter table public.insurance_scans enable row level security;
 drop policy if exists "anyone can read insurance scans" on public.insurance_scans;
 create policy "anyone can read insurance scans" on public.insurance_scans
   for select using (true);
+
+-- 5. Starred (saved) places. Only Google's place ID is stored; details are looked up fresh.
+create table if not exists public.favorites (
+  user_id uuid not null references auth.users on delete cascade,
+  place_id text not null,
+  kind text not null check (kind in ('facility', 'doctor', 'er')),
+  created_at timestamptz not null default now(),
+  primary key (user_id, place_id)
+);
+
+alter table public.favorites enable row level security;
+
+drop policy if exists "Users manage their own favorites" on public.favorites;
+create policy "Users manage their own favorites" on public.favorites
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

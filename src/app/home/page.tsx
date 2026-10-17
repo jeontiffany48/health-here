@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, ChevronRight, ShieldCheck, Siren, Stethoscope } from "lucide-react";
+import { Building2, ChevronRight, ShieldCheck, Siren, Star, Stethoscope } from "lucide-react";
+import { useFavorites } from "@/context/FavoritesContext";
 import { LocationBar } from "@/components/LocationBar";
 import { useApp } from "@/context/AppContext";
 import { AppShell } from "@/components/AppShell";
@@ -19,6 +20,7 @@ export default function HomePage() {
 
 function Dashboard() {
   const { t, profile, mode } = useApp();
+  const { favorites } = useFavorites();
   const firstName = profile.fullName.split(" ")[0];
 
   return (
@@ -40,6 +42,16 @@ function Dashboard() {
         <BigCard href="/find/facilities" icon={<Building2 className="h-8 w-8" />} title={t("facilities")} body={t("facilitiesBody")} tint="bg-brand/60" />
         <BigCard href="/find/doctors" icon={<Stethoscope className="h-8 w-8" />} title={t("doctors")} body={t("doctorsBody")} tint="bg-[#dfe8ff]" />
       </div>
+
+      {/* Saved places */}
+      <Link href="/saved" className="card mt-4 flex items-center gap-3 px-5 py-4 transition hover:border-forest">
+        <Star className={`h-6 w-6 shrink-0 ${favorites.length ? "fill-[#f5b301] text-[#f5b301]" : "text-muted"}`} aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{t("savedPlaces")}</span>
+          <span className="block truncate text-sm text-muted">{favorites.length ? t("savedCount", { n: favorites.length }) : t("savedEmptyHint")}</span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+      </Link>
 
       {/* Specialty shortcuts */}
       <section className="mt-8">
