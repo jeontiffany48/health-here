@@ -11,6 +11,7 @@ import { useApp } from "@/context/AppContext";
 import { PlaceCard } from "./PlaceCard";
 import { SPECIALTIES, insuranceLabel } from "@/lib/insurance";
 import { usePlaces } from "@/lib/usePlaces";
+import { useNow, withLiveHours } from "@/lib/hours";
 import type { DictKey } from "@/lib/i18n";
 
 const MapView = dynamic(() => import("./MapView"), {
@@ -19,9 +20,6 @@ const MapView = dynamic(() => import("./MapView"), {
 });
 
 type Kind = "facility" | "doctor";
-
-// Photos cost money per lookup; show them only for the top results people actually look at.
-const PHOTO_LIMIT = 5;
 
 /** Locator screen for one kind of place. Always has a clear way back to the home dashboard. */
 export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecialty?: string }) {
@@ -38,12 +36,13 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
 
   const { data, loading, error, retry, scanning } = usePlaces(kind, kind === "doctor" ? specialty : "", location, profile.insurance);
 
+  const now = useNow();
   const filtered = useMemo(() => {
-    let list = data?.places ?? [];
+    let list = withLiveHours(data?.places ?? [], now); // open/closed updates every minute
     if (inNetwork) list = list.filter((p) => p.insuranceStatus === "accepted" || p.insuranceStatus === "website_listed");
     if (openNow) list = list.filter((p) => p.openNow === true);
     return list;
-  }, [data, inNetwork, openNow]);
+  }, [data, inNetwork, openNow, now]);
   const sorted = useMemo(() => sortPlaces(filtered, sort), [filtered, sort]);
 
   // While websites are still being checked for insurance, keep the current order so cards
@@ -166,7 +165,7 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
                 ) : (
                   <div className={`flex flex-col gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
                     {places.map((p, i) => (
-                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} photo={i < PHOTO_LIMIT} />
+                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} />
                     ))}
                   </div>
                 )}

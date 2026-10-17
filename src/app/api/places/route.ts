@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL } from "@/lib/supabase/client";
 import { distanceKm, directionsUrl } from "@/lib/geo";
 import { samplePlaces, type RawPlace } from "@/lib/sampleData";
-import type { InsuranceStatus, Place, PlaceKind, PlacesResponse } from "@/lib/types";
+import type { InsuranceStatus, Period, Place, PlaceKind, PlacesResponse } from "@/lib/types";
 import { insuranceStatusFor } from "@/lib/insuranceMatch";
 import { getCachedScans } from "@/lib/server/websiteScanner";
 
@@ -87,7 +87,13 @@ function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: numb
     rank,
     primaryType: null,
     types: [],
-    photo: null,
+    periods:
+      p.weekHours === "24h"
+        ? [{ open: { day: 0, hour: 0, minute: 0 } }]
+        : p.weekHours
+          ? p.weekHours.flatMap(([o, c], i) => (o === c ? [] : [{ open: { day: (i + 1) % 7, hour: o, minute: 0 }, close: { day: (i + 1) % 7, hour: c, minute: 0 } }]))
+          : null,
+    utcOffsetMinutes: null,
   };
 }
 
@@ -100,15 +106,15 @@ type GPlace = {
   location?: { latitude: number; longitude: number };
   rating?: number;
   userRatingCount?: number;
-  currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
-  regularOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[] };
+  currentOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[]; periods?: Period[] };
+  regularOpeningHours?: { openNow?: boolean; weekdayDescriptions?: string[]; periods?: Period[] };
+  utcOffsetMinutes?: number;
   nationalPhoneNumber?: string;
   websiteUri?: string;
   primaryTypeDisplayName?: { text: string };
   primaryType?: string;
   types?: string[];
   businessStatus?: string;
-  photos?: { name: string; authorAttributions?: { displayName?: string; uri?: string }[] }[];
 };
 
 async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat: number; lng: number }, jsDow: number): Promise<Place[]> {
@@ -135,7 +141,7 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         "places.primaryType",
         "places.types",
         "places.businessStatus",
-        "places.photos",
+        "places.utcOffsetMinutes",
       ].join(","),
     },
     body: JSON.stringify({
@@ -177,17 +183,14 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         rank: i,
         primaryType: g.primaryType ?? null,
         types: g.types ?? [],
-        photo: g.photos?.[0]
-          ? {
-              name: g.photos[0].name,
-              author: g.photos[0].authorAttributions?.[0]?.displayName ?? null,
-              authorUri: g.photos[0].authorAttributions?.[0]?.uri ?? null,
-            }
-          : null,
+        periods: hours?.periods?.length ? hours.periods.map((p) => ({ open: pick(p.open), ...(p.close ? { close: pick(p.close) } : {}) })) : null,
+        utcOffsetMinutes: g.utcOffsetMinutes ?? null,
       };
     })
     .filter((p) => p.distanceKm < 40);
 }
+
+const pick = (x: Period["open"]) => ({ day: x.day, hour: x.hour, minute: x.minute });
 
 /** Fill in accepted plans from our own provider_insurance table (null = no data). */
 async function attachInsurance(places: Place[]) {

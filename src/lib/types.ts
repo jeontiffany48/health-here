@@ -65,8 +65,15 @@ export type Place = {
   rank: number;
   primaryType: string | null;
   types: string[];
-  /** First Google Maps photo of the place, if any (shown with its required author credit). */
-  photo: { name: string; author: string | null; authorUri: string | null } | null;
+  /** Weekly schedule (Google's format, day 0 = Sunday) so open/closed can update live on the phone. */
+  periods: Period[] | null;
+  /** The place's offset from UTC right now, in minutes (for its own time zone). */
+  utcOffsetMinutes: number | null;
+};
+
+export type Period = {
+  open: { day: number; hour: number; minute: number };
+  close?: { day: number; hour: number; minute: number };
 };
 
 export type PlacesResponse = {

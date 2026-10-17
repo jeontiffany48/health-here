@@ -10,7 +10,7 @@ const SCAN_CONCURRENCY = 3;
 // ---- Cost savers ----
 // 1) Search from a point rounded to ~100 m, so small GPS jitter doesn't count as a "new" search.
 // 2) Reuse the same search on this device for 1 hour instead of asking Google again.
-const CACHE_PREFIX = "hh-places:";
+const CACHE_PREFIX = "hh-places2:";
 const CACHE_MS = 60 * 60 * 1000;
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
 

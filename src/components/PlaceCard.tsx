@@ -6,9 +6,13 @@ import { useApp } from "@/context/AppContext";
 import { formatDistance } from "@/lib/geo";
 import { insuranceLabel } from "@/lib/insurance";
 import type { Place } from "@/lib/types";
+import { liveHours, useNow } from "@/lib/hours";
 
-export function PlaceCard({ place, index, active, onSelect, er = false, checking = false, photo = true }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean; photo?: boolean }) {
+export function PlaceCard({ place, index, active, onSelect, er = false, checking = false }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean }) {
   const { t, profile } = useApp();
+  const now = useNow();
+  const live = liveHours(place, now, profile.language);
+  const todayLine = place.weekHours[live.todayIndex]?.replace(/^[^:]+:\s*/, "") ?? place.todayHours;
   const [showHours, setShowHours] = useState(false);
   const plan = insuranceLabel(profile.insurance);
 
@@ -20,7 +24,7 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
       onFocus={onSelect}
     >
       <div className="flex gap-3">
-        <PlaceThumb place={place} index={index} er={er} allowPhoto={photo} />
+        <PlaceThumb place={place} index={index} er={er} />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold leading-snug">{place.name}</h3>
           <p className="text-sm text-muted">
@@ -48,18 +52,33 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
             disabled={place.weekHours.length === 0}
           >
             <Clock className="h-4 w-4 text-muted" aria-hidden />
-            {place.openNow == null ? (
+            {live.openNow == null ? (
               <span className="text-muted">{t("hoursUnknown")}</span>
             ) : (
-              <span className={`font-semibold ${place.openNow ? "text-ok" : "text-sos-dark"}`}>{place.openNow ? t("open") : t("closed")}</span>
+              <span className={`font-semibold ${live.openNow ? (live.next?.soon ? "text-warn" : "text-ok") : "text-sos-dark"}`}>
+                {live.always
+                  ? t("open24h")
+                  : live.openNow && live.next?.soon
+                    ? t("closesSoon", { t: live.next.time })
+                    : live.openNow
+                      ? t("open")
+                      : t("closed")}
+              </span>
             )}
-            {place.todayHours && <span className="text-muted">· {t("today")}: {place.todayHours}</span>}
+            {live.next && !live.always && !(live.openNow && live.next.soon) ? (
+              <span className="text-muted">
+                ·{" "}
+                {live.next.kind === "closes" ? t("closesAt", { t: live.next.time }) : t("opensAt", { t: live.next.time })}
+              </span>
+            ) : (
+              !live.always && !(live.openNow && live.next?.soon) && todayLine && <span className="text-muted">· {t("today")}: {todayLine}</span>
+            )}
             {place.weekHours.length > 0 && <ChevronDown className={`h-4 w-4 text-muted transition ${showHours ? "rotate-180" : ""}`} aria-hidden />}
           </button>
           {showHours && (
             <ul className="mt-2 space-y-0.5 rounded-lg bg-surface p-2 text-xs text-muted">
-              {place.weekHours.map((h) => (
-                <li key={h}>{h}</li>
+              {place.weekHours.map((h, i) => (
+                <li key={h} className={i === live.todayIndex ? "font-semibold text-ink" : ""}>{h}</li>
               ))}
             </ul>
           )}
@@ -82,46 +101,18 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
   );
 }
 
-/** Google Maps photo of the place (with the author credit Google requires), or an icon if there's none. */
-function PlaceThumb({ place, index, er, allowPhoto }: { place: Place; index: number; er: boolean; allowPhoto: boolean }) {
-  const [failed, setFailed] = useState(false);
+/** Numbered icon for the place (no photos — each Google photo is a paid lookup). */
+function PlaceThumb({ place, index, er }: { place: Place; index: number; er: boolean }) {
   const isDoctor = /doctor|physician|dentist|^dr\.?\s/i.test(`${place.primaryType ?? ""} ${place.types.join(" ")} ${place.name}`);
   const Icon = er ? Siren : isDoctor ? Stethoscope : Building2;
-  // Each photo is a paid lookup, so only the top results show one (see PHOTO_LIMIT in Locator).
-  const showPhoto = allowPhoto && place.photo && !failed;
   return (
-    <div className="w-[72px] shrink-0 sm:w-20">
-      <div className="relative h-[72px] w-[72px] sm:h-20 sm:w-20">
-        {showPhoto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={`/api/place-photo?name=${encodeURIComponent(place.photo!.name)}&w=200`}
-            alt={`Photo of ${place.name}`}
-            loading="lazy"
-            decoding="async"
-            onError={() => setFailed(true)}
-            className="h-full w-full rounded-xl bg-surface object-cover"
-          />
-        ) : (
-          <div className={`flex h-full w-full items-center justify-center rounded-xl ${er ? "bg-[#fde3e3] text-sos" : isDoctor ? "bg-[#dfe8ff] text-forest" : "bg-brand/50 text-forest"}`}>
-            <Icon className="h-8 w-8" aria-hidden />
-          </div>
-        )}
-        <span className={`absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white ${er ? "bg-sos" : "bg-forest"}`} aria-hidden>
-          {index + 1}
-        </span>
+    <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
+      <div className={`flex h-full w-full items-center justify-center rounded-xl ${er ? "bg-[#fde3e3] text-sos" : isDoctor ? "bg-[#dfe8ff] text-forest" : "bg-brand/50 text-forest"}`}>
+        <Icon className="h-7 w-7" aria-hidden />
       </div>
-      {showPhoto && place.photo!.author && (
-        <p className="mt-0.5 truncate text-[10px] leading-tight text-muted" title={`Photo: ${place.photo!.author} · Google Maps`}>
-          {place.photo!.authorUri ? (
-            <a href={place.photo!.authorUri} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              © {place.photo!.author}
-            </a>
-          ) : (
-            <>© {place.photo!.author}</>
-          )}
-        </p>
-      )}
+      <span className={`absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white ${er ? "bg-sos" : "bg-forest"}`} aria-hidden>
+        {index + 1}
+      </span>
     </div>
   );
 }
