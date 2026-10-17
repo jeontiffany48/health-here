@@ -28,7 +28,8 @@ function Emergency() {
   const [address, setAddress] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const { data, loading, scanning } = usePlaces("er", "", location, profile.insurance);
-  const ers = (data?.places ?? []).slice(0, 5);
+  // In an emergency, nearest first — not "best match".
+  const ers = [...(data?.places ?? [])].sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 5);
 
   // Ask for location right away if we don't have it — every second counts here.
   useEffect(() => {

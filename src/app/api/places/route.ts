@@ -33,11 +33,11 @@ export async function GET(req: NextRequest) {
       const scans = await getCachedScans(places.filter((p) => p.website).map((p) => p.id)).catch(() => new Map());
       for (const p of places) p.websiteScan = scans.get(p.id) ?? null;
     } else {
-      places = samplePlaces(kind, q, center).map((p) => fromSample(p, center, dow, mins));
+      places = samplePlaces(kind, q, center).map((p, i) => fromSample(p, center, dow, mins, i));
       source = "sample";
     }
     for (const p of places) p.insuranceStatus = insuranceStatusFor(p, insurance);
-    places.sort((a, b) => a.distanceKm - b.distanceKm);
+    // Keep the provider's relevance order (rank); the app ranks "Best match" itself (see lib/ranking.ts).
     return NextResponse.json({ places, source } satisfies PlacesResponse, {
       headers: { "Cache-Control": "private, max-age=120" },
     });
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 const fmtHour = (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? "AM" : "PM"}`;
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: number, mins: number): Place {
+function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: number, mins: number, rank: number): Place {
   const monIdx = (dow + 6) % 7; // convert Sunday-based to Monday-based
   let openNow: boolean | null = null;
   let todayHours: string | null = null;
@@ -84,6 +84,9 @@ function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: numb
     website: null,
     websiteScan: null,
     insuranceStatus: "unknown",
+    rank,
+    primaryType: null,
+    types: [],
   };
 }
 
@@ -101,6 +104,9 @@ type GPlace = {
   nationalPhoneNumber?: string;
   websiteUri?: string;
   primaryTypeDisplayName?: { text: string };
+  primaryType?: string;
+  types?: string[];
+  businessStatus?: string;
 };
 
 async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat: number; lng: number }, jsDow: number): Promise<Place[]> {
@@ -124,6 +130,9 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         "places.nationalPhoneNumber",
         "places.websiteUri",
         "places.primaryTypeDisplayName",
+        "places.primaryType",
+        "places.types",
+        "places.businessStatus",
       ].join(","),
     },
     body: JSON.stringify({
@@ -138,8 +147,8 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
   const data = (await res.json()) as { places?: GPlace[] };
 
   return (data.places ?? [])
-    .filter((g) => g.location)
-    .map((g) => {
+    .filter((g) => g.location && g.businessStatus !== "CLOSED_PERMANENTLY" && g.businessStatus !== "CLOSED_TEMPORARILY")
+    .map((g, i) => {
       const loc = { lat: g.location!.latitude, lng: g.location!.longitude };
       const hours = g.currentOpeningHours ?? g.regularOpeningHours;
       const week = hours?.weekdayDescriptions ?? [];
@@ -162,6 +171,9 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         website: g.websiteUri ?? null,
         websiteScan: null,
         insuranceStatus: "unknown" as InsuranceStatus,
+        rank: i,
+        primaryType: g.primaryType ?? null,
+        types: g.types ?? [],
       };
     })
     .filter((p) => p.distanceKm < 40);

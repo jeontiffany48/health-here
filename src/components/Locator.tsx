@@ -2,9 +2,10 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { sortPlaces, type SortMode } from "@/lib/ranking";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Building2, List, Map as MapIcon, Stethoscope } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Building2, ChevronDown, List, Map as MapIcon, Stethoscope } from "lucide-react";
 import { LocationBar } from "./LocationBar";
 import { useApp } from "@/context/AppContext";
 import { PlaceCard } from "./PlaceCard";
@@ -28,19 +29,33 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
   );
   const [inNetwork, setInNetwork] = useState(false);
   const [openNow, setOpenNow] = useState(false);
-  const [sort, setSort] = useState<"distance" | "rating">("distance");
+  const [sort, setSort] = useState<SortMode>("relevance");
   const [view, setView] = useState<"list" | "map">("list");
   const [activeId, setActiveId] = useState<string | null>(null);
 
   const { data, loading, error, retry, scanning } = usePlaces(kind, kind === "doctor" ? specialty : "", location, profile.insurance);
 
-  const places = useMemo(() => {
+  const filtered = useMemo(() => {
     let list = data?.places ?? [];
     if (inNetwork) list = list.filter((p) => p.insuranceStatus === "accepted" || p.insuranceStatus === "website_listed");
     if (openNow) list = list.filter((p) => p.openNow === true);
-    if (sort === "rating") list = [...list].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     return list;
-  }, [data, inNetwork, openNow, sort]);
+  }, [data, inNetwork, openNow]);
+  const sorted = useMemo(() => sortPlaces(filtered, sort), [filtered, sort]);
+
+  // While websites are still being checked for insurance, keep the current order so cards
+  // don't jump around under the user's finger; re-rank once all checks are done.
+  const frozen = useRef<{ key: string; order: string[] }>({ key: "", order: [] });
+  const listKey = `${sort}|${filtered.map((p) => p.id).sort().join(",")}`;
+  const settled = scanning.size === 0;
+  const places = useMemo(() => {
+    if (settled || frozen.current.key !== listKey) {
+      frozen.current = { key: listKey, order: sorted.map((p) => p.id) };
+      return sorted;
+    }
+    const byId = new Map(filtered.map((p) => [p.id, p]));
+    return frozen.current.order.map((id) => byId.get(id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  }, [sorted, filtered, settled, listKey]);
 
   const select = (id: string) => {
     setActiveId(id);
@@ -91,9 +106,16 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
           <button className="chip" aria-pressed={openNow} onClick={() => setOpenNow(!openNow)}>
             {t("openNow")}
           </button>
-          <button className="chip" aria-pressed={sort === "rating"} onClick={() => setSort(sort === "rating" ? "distance" : "rating")}>
-            {sort === "rating" ? t("sortRating") : t("sortDistance")}
-          </button>
+          <label className="chip relative cursor-pointer pr-8">
+            <span className="sr-only">{t("sortBy")}</span>
+            <ArrowUpDown className="h-4 w-4" aria-hidden />
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="cursor-pointer appearance-none bg-transparent font-medium outline-none" aria-label={t("sortBy")}>
+              <option value="relevance">{t("sortRelevance")}</option>
+              <option value="distance">{t("sortDistance")}</option>
+              <option value="rating">{t("sortRating")}</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 h-4 w-4" aria-hidden />
+          </label>
         </div>
         {/* Phone only: switch between list and map */}
         <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1 lg:hidden" role="tablist" aria-label={`${t("list")} / ${t("map")}`}>
@@ -132,7 +154,10 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
               <SkeletonList />
             ) : (
               <>
-                <p className="mb-3 text-sm text-muted">{t("results", { n: places.length })}</p>
+                <p className="mb-3 text-sm text-muted">
+                  {t("results", { n: places.length })}
+                  {sort === "relevance" && <span> · {t("sortHint")}</span>}
+                </p>
                 {places.length === 0 ? (
                   <p className="card p-6 text-center text-muted">{t("noResults")}</p>
                 ) : (

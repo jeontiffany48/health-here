@@ -61,6 +61,10 @@ export type Place = {
   website: string | null;
   websiteScan: WebsiteScan | null; // null = not checked yet
   insuranceStatus: InsuranceStatus;
+  /** Position in the search provider's results (0 = best text match). */
+  rank: number;
+  primaryType: string | null;
+  types: string[];
 };
 
 export type PlacesResponse = {
