@@ -46,7 +46,7 @@ export function EmergencyButton({ withNav = false }: { withNav?: boolean }) {
         className="fixed inset-x-0 bottom-0 z-[1000] border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         aria-label={t("menu")}
       >
-        <div className="mx-auto grid h-16 max-w-lg grid-cols-5 items-center px-2">
+        <div className="mx-auto grid h-16 max-w-lg grid-cols-[repeat(5,minmax(0,1fr))] items-center px-1">
           {withNav ? (
             <>
               <BarItem href="/home" active={path === "/home"} icon={<Home className="h-6 w-6" />} label={t("home")} />
@@ -75,16 +75,16 @@ export function EmergencyButton({ withNav = false }: { withNav?: boolean }) {
 }
 
 function BarItem({ href, onClick, active = false, icon, label }: { href?: string; onClick?: () => void; active?: boolean; icon: React.ReactNode; label: string }) {
-  const cls = `flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium leading-tight ${active ? "text-forest" : "text-muted"}`;
+  const cls = `flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 text-[11px] font-medium leading-tight ${active ? "text-forest" : "text-muted"}`;
   return href ? (
     <Link href={href} aria-current={active ? "page" : undefined} className={cls}>
       {icon}
-      {label}
+      <span className="max-w-full truncate">{label}</span>
     </Link>
   ) : (
     <button type="button" onClick={onClick} className={cls}>
       {icon}
-      {label}
+      <span className="max-w-full truncate">{label}</span>
     </button>
   );
 }

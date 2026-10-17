@@ -36,7 +36,7 @@ function Dashboard() {
       )}
 
       {/* Main choices */}
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <BigCard href="/find/facilities" icon={<Building2 className="h-8 w-8" />} title={t("facilities")} body={t("facilitiesBody")} tint="bg-brand/60" />
         <BigCard href="/find/doctors" icon={<Stethoscope className="h-8 w-8" />} title={t("doctors")} body={t("doctorsBody")} tint="bg-[#dfe8ff]" />
       </div>
@@ -71,10 +71,10 @@ function Dashboard() {
 
 function BigCard({ href, icon, title, body, tint }: { href: string; icon: React.ReactNode; title: string; body: string; tint: string }) {
   return (
-    <Link href={href} className="card group flex items-center gap-4 p-5 transition hover:border-forest hover:shadow-md lg:p-6">
-      <span className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-forest ${tint}`}>{icon}</span>
+    <Link href={href} className="card group flex min-w-0 items-center gap-3 p-4 sm:gap-4 sm:p-5 transition hover:border-forest hover:shadow-md lg:p-6">
+      <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl sm:h-16 sm:w-16 text-forest ${tint}`}>{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-xl font-semibold">{title}</span>
+        <span className="block text-xl font-semibold [overflow-wrap:anywhere]">{title}</span>
         <span className="mt-0.5 block text-muted">{body}</span>
       </span>
       <ChevronRight className="h-6 w-6 shrink-0 text-muted transition group-hover:translate-x-1 group-hover:text-forest" aria-hidden />

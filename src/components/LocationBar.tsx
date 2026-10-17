@@ -38,9 +38,9 @@ export function LocationBar({ className = "" }: { className?: string }) {
 
   return (
     <div className={className}>
-      <div className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${approximate ? "border-warn/40 bg-[#fff4e0]" : "border-line bg-surface"}`}>
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border px-3 py-2 ${approximate ? "border-warn/40 bg-[#fff4e0]" : "border-line bg-surface"}`}>
         {approximate ? <AlertTriangle className="h-5 w-5 shrink-0 text-warn" aria-hidden /> : <MapPin className="h-5 w-5 shrink-0 text-forest" aria-hidden />}
-        <div className="min-w-0 flex-1 text-sm">
+        <div className="min-w-[10rem] flex-1 basis-[12rem] text-sm">
           <p className="line-clamp-2">
             <span className="text-muted">{t("searchingNear")}: </span>
             <span className="font-semibold">{location ? label : t("notSet")}</span>
@@ -56,7 +56,7 @@ export function LocationBar({ className = "" }: { className?: string }) {
             </p>
           )}
         </div>
-        <button type="button" onClick={() => setOpen(!open)} className="btn-ghost !min-h-10 shrink-0 !px-3 text-sm" aria-expanded={open}>
+        <button type="button" onClick={() => setOpen(!open)} className="btn-ghost !min-h-10 ml-auto shrink-0 !px-3 text-sm" aria-expanded={open}>
           {open ? t("done") : t("change")}
         </button>
       </div>

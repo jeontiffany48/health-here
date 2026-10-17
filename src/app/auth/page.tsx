@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Eye, EyeOff, Lock, Mail, UserRound } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { AuthLayout } from "@/components/AuthLayout";
+import { InstallApp } from "@/components/InstallApp";
 import { Logo } from "@/components/Logo";
 import { getEmailLinkClient, getSupabase, supabaseConfigured } from "@/lib/supabase/client";
 
@@ -188,6 +189,7 @@ function AuthInner() {
       <Link href="/welcome" className="btn mt-3 w-full text-muted">
         {t("back")}
       </Link>
+      <InstallApp className="mt-4 border-t border-line pt-4" />
     </AuthLayout>
   );
 }

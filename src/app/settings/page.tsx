@@ -1,5 +1,6 @@
 "use client";
 
+import { InstallApp } from "@/components/InstallApp";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -123,6 +124,7 @@ function Settings() {
       </div>
 
       <div className="mt-6 flex flex-col gap-3">
+        <InstallApp />
         {mode === "user" ? (
           <button
             className="btn-ghost"

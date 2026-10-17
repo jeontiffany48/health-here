@@ -85,17 +85,17 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
 
           {profile.insurance && <InsuranceBadge status={place.insuranceStatus} plan={plan} checking={checking} sourceUrl={place.websiteScan?.sourceUrl ?? null} />}
 
-          <div className="mt-3 flex gap-2">
-            {place.phone && (
-              <a href={`tel:${place.phone.replace(/[^\d+]/g, "")}`} className="btn-ghost !min-h-11 flex-1 text-sm">
-                <Phone className="h-4 w-4" aria-hidden /> {t("call")}
-              </a>
-            )}
-            <a href={place.mapsUrl} target="_blank" rel="noopener noreferrer" className={`${er ? "btn-danger" : "btn-primary"} !min-h-11 flex-1 text-sm`}>
-              <Navigation className="h-4 w-4" aria-hidden /> {t("directions")}
-            </a>
-          </div>
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {place.phone && (
+          <a href={`tel:${place.phone.replace(/[^\d+]/g, "")}`} className="btn-ghost !min-h-11 min-w-[8rem] flex-1 text-sm">
+            <Phone className="h-4 w-4" aria-hidden /> {t("call")}
+          </a>
+        )}
+        <a href={place.mapsUrl} target="_blank" rel="noopener noreferrer" className={`${er ? "btn-danger" : "btn-primary"} !min-h-11 min-w-[8rem] flex-1 text-sm`}>
+          <Navigation className="h-4 w-4" aria-hidden /> {t("directions")}
+        </a>
       </div>
     </article>
   );

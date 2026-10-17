@@ -6,10 +6,16 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Health Here",
     short_name: "Health Here",
     description: "Find care near you that takes your insurance.",
+    id: "/",
     start_url: "/",
     display: "standalone",
-    background_color: "#f5f7f2",
+    background_color: "#c6e47b",
     theme_color: "#c6e47b",
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+    icons: [
+      { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
+    ],
   };
 }
