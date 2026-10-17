@@ -77,9 +77,6 @@ function OnboardingInner() {
           >
             {t("saveCreate")}
           </Link>
-          <Link href="/auth?from=onboarding" className="btn-ghost">
-            {t("saveSignIn")}
-          </Link>
           <button type="button" className="btn mt-1 text-muted" onClick={() => router.replace("/home")}>
             {t("saveSkip")}
           </button>
