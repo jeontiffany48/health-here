@@ -179,7 +179,7 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
                 ) : (
                   <div className={`flex flex-col gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
                     {places.map((p, i) => (
-                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} />
+                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} kind={kind} />
                     ))}
                   </div>
                 )}

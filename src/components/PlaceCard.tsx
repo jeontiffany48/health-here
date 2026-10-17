@@ -8,7 +8,7 @@ import { insuranceLabel } from "@/lib/insurance";
 import type { Place } from "@/lib/types";
 import { liveHours, useNow } from "@/lib/hours";
 
-export function PlaceCard({ place, index, active, onSelect, er = false, checking = false }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean }) {
+export function PlaceCard({ place, index, active, onSelect, er = false, checking = false, kind = "facility" }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean; kind?: "facility" | "doctor" }) {
   const { t, profile } = useApp();
   const now = useNow();
   const live = liveHours(place, now, profile.language);
@@ -24,7 +24,7 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
       onFocus={onSelect}
     >
       <div className="flex gap-3">
-        <PlaceThumb place={place} index={index} er={er} />
+        <PlaceThumb index={index} er={er} kind={kind} />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold leading-snug">{place.name}</h3>
           <p className="text-sm text-muted">
@@ -101,9 +101,9 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
   );
 }
 
-/** Numbered icon for the place (no photos — each Google photo is a paid lookup). */
-function PlaceThumb({ place, index, er }: { place: Place; index: number; er: boolean }) {
-  const isDoctor = /doctor|physician|dentist|^dr\.?\s/i.test(`${place.primaryType ?? ""} ${place.types.join(" ")} ${place.name}`);
+/** Numbered icon — one icon per screen (hospitals & clinics / doctors / ER), so results never mix icons. */
+function PlaceThumb({ index, er, kind }: { index: number; er: boolean; kind: "facility" | "doctor" }) {
+  const isDoctor = !er && kind === "doctor";
   const Icon = er ? Siren : isDoctor ? Stethoscope : Building2;
   return (
     <div className="relative h-14 w-14 shrink-0 sm:h-16 sm:w-16">
