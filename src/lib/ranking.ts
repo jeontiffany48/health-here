@@ -54,3 +54,17 @@ export function sortPlaces(places: Place[], mode: SortMode): Place[] {
     return list.sort((a, b) => trustedRating(b) - trustedRating(a) || a.distanceKm - b.distanceKm);
   return list.sort((a, b) => relevanceScore(b) - relevanceScore(a) || a.distanceKm - b.distanceKm);
 }
+
+/**
+ * Sort by several choices at once (e.g. Nearest + Top rated): each place's position in each
+ * chosen ordering is averaged, so a place that does well on all of them comes first.
+ * Ties go to the "Best match" order.
+ */
+export function sortPlacesMulti(places: Place[], modes: SortMode[]): Place[] {
+  const chosen = modes.length ? modes : (["relevance"] as SortMode[]);
+  if (chosen.length === 1) return sortPlaces(places, chosen[0]);
+  const pos = new Map<string, number>();
+  for (const m of chosen) sortPlaces(places, m).forEach((p, i) => pos.set(p.id, (pos.get(p.id) ?? 0) + i));
+  const tie = new Map(sortPlaces(places, "relevance").map((p, i) => [p.id, i]));
+  return [...places].sort((a, b) => pos.get(a.id)! - pos.get(b.id)! || tie.get(a.id)! - tie.get(b.id)!);
+}

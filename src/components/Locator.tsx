@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { sortPlaces, type SortMode } from "@/lib/ranking";
+import { sortPlacesMulti, type SortMode } from "@/lib/ranking";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpDown, Building2, ChevronDown, List, Map as MapIcon, Stethoscope } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Building2, Check, List, Map as MapIcon, Stethoscope } from "lucide-react";
 import { LocationBar } from "./LocationBar";
 import { useApp } from "@/context/AppContext";
 import { PlaceCard } from "./PlaceCard";
@@ -30,7 +30,16 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
   );
   const [inNetwork, setInNetwork] = useState(false);
   const [openNow, setOpenNow] = useState(false);
-  const [sort, setSort] = useState<SortMode>("relevance");
+  // Sort chips: pick one or more. "Best match" is on by default and steps aside on the first
+  // other pick (so "Nearest" really means nearest); turning the last one off goes back to it.
+  const [sortState, setSortState] = useState<{ modes: SortMode[]; isDefault: boolean }>({ modes: ["relevance"], isDefault: true });
+  const sorts = sortState.modes;
+  const toggleSort = (m: SortMode) =>
+    setSortState(({ modes, isDefault }) => {
+      if (isDefault) return m === "relevance" ? { modes, isDefault: false } : { modes: [m], isDefault: false };
+      const next = modes.includes(m) ? modes.filter((x) => x !== m) : [...modes, m];
+      return next.length ? { modes: next, isDefault: false } : { modes: ["relevance"], isDefault: true };
+    });
   const [view, setView] = useState<"list" | "map">("list");
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -43,12 +52,12 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
     if (openNow) list = list.filter((p) => p.openNow === true);
     return list;
   }, [data, inNetwork, openNow, now]);
-  const sorted = useMemo(() => sortPlaces(filtered, sort), [filtered, sort]);
+  const sorted = useMemo(() => sortPlacesMulti(filtered, sorts), [filtered, sorts]);
 
   // While websites are still being checked for insurance, keep the current order so cards
   // don't jump around under the user's finger; re-rank once all checks are done.
   const frozen = useRef<{ key: string; order: string[] }>({ key: "", order: [] });
-  const listKey = `${sort}|${filtered.map((p) => p.id).sort().join(",")}`;
+  const listKey = `${[...sorts].sort().join("+")}|${filtered.map((p) => p.id).sort().join(",")}`;
   const settled = scanning.size === 0;
   const places = useMemo(() => {
     if (settled || frozen.current.key !== listKey) {
@@ -108,16 +117,17 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
           <button className="chip" aria-pressed={openNow} onClick={() => setOpenNow(!openNow)}>
             {t("openNow")}
           </button>
-          <label className="chip relative cursor-pointer">
-            <span className="sr-only">{t("sortBy")}</span>
-            <ArrowUpDown className="h-4 w-4" aria-hidden />
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="cursor-pointer appearance-none bg-transparent pr-5 font-medium outline-none" aria-label={t("sortBy")}>
-              <option value="relevance">{t("sortRelevance")}</option>
-              <option value="distance">{t("sortDistance")}</option>
-              <option value="rating">{t("sortRating")}</option>
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4" aria-hidden />
-          </label>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2" role="group" aria-label={t("sortBy")}>
+          <span className="inline-flex items-center gap-1 text-sm font-medium text-muted">
+            <ArrowUpDown className="h-4 w-4" aria-hidden /> {t("sortBy")}:
+          </span>
+          {(["relevance", "distance", "rating"] as const).map((m) => (
+            <button key={m} type="button" className="chip" aria-pressed={sorts.includes(m)} onClick={() => toggleSort(m)}>
+              {sorts.includes(m) && <Check className="h-4 w-4" aria-hidden />}
+              {t(m === "relevance" ? "sortRelevance" : m === "distance" ? "sortDistance" : "sortRating")}
+            </button>
+          ))}
         </div>
         {/* Phone only: switch between list and map */}
         <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface p-1 lg:hidden" role="tablist" aria-label={`${t("list")} / ${t("map")}`}>
@@ -158,7 +168,11 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
               <>
                 <p className="mb-3 text-sm text-muted">
                   {t("results", { n: places.length })}
-                  {sort === "relevance" && <span> · {t("sortHint")}</span>}
+                  {sorts.length > 1 ? (
+                    <span> · {t("sortCombined")}</span>
+                  ) : (
+                    sorts[0] === "relevance" && <span> · {t("sortHint")}</span>
+                  )}
                 </p>
                 {places.length === 0 ? (
                   <p className="card p-6 text-center text-muted">{t("noResults")}</p>
