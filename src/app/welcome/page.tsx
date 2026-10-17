@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, ShieldCheck, Siren } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogIn, MapPin, ShieldCheck, Siren, UserPlus } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { AuthLayout } from "@/components/AuthLayout";
 import { Logo } from "@/components/Logo";
@@ -20,7 +20,6 @@ export default function Welcome() {
   const { t, mode, profile, startGuest, updateProfile, exitGuest } = useApp();
   const router = useRouter();
   const [i, setI] = useState(0);
-  const last = i === SLIDES.length - 1;
 
   const startingGuest = useRef(false);
   useEffect(() => {
@@ -57,52 +56,57 @@ export default function Welcome() {
         </select>
       </div>
 
-      {/* Phone: swipe-style intro slides */}
-      <section className="mt-4 md:hidden" aria-roledescription="carousel">
-        <div className={`mx-auto flex aspect-square w-full max-w-[13rem] items-center justify-center rounded-[2rem] text-forest ${SLIDES[i].tint}`}>
-          {SLIDES[i].icon}
-        </div>
-        <div className="mt-6 flex justify-center gap-1.5" aria-hidden>
-          {SLIDES.map((_, n) => (
-            <span key={n} className={`h-1.5 rounded-full transition-all ${n === i ? "w-6 bg-forest" : "w-1.5 bg-line"}`} />
-          ))}
-        </div>
-        <h1 className="mt-6 text-center text-2xl font-semibold" aria-live="polite">
-          {t(SLIDES[i].title)}
-        </h1>
-        <p className="mx-auto mt-2 max-w-xs text-center text-muted">{t(SLIDES[i].body)}</p>
-      </section>
-
-      {/* Desktop heading (slides live in the side panel) */}
+      {/* Desktop heading (logo + slides live in the side panel) */}
       <section className="hidden md:block">
         <h1 className="mt-6 text-3xl font-semibold">{t("welcomeTo")}</h1>
         <p className="mt-2 text-muted">{t("authSub")}</p>
       </section>
 
-      <div className="mt-8 flex flex-col gap-3">
-        {!last ? (
-          <div className="flex flex-col gap-3 md:hidden">
-            <button className="btn-primary" onClick={() => setI(i + 1)}>
-              {t("next")}
-            </button>
-            <button className="btn-ghost" onClick={() => setI(SLIDES.length - 1)}>
-              {t("skip")}
-            </button>
-          </div>
-        ) : null}
-        <div className={`flex-col gap-3 ${last ? "flex" : "hidden md:flex"}`}>
-          <Link href="/auth" className="btn-primary">
-            {t("signIn")}
-          </Link>
-          <Link href="/auth?tab=signup" className="btn-ghost">
-            {t("signUp")}
-          </Link>
-          <button className="btn mt-2 text-forest underline underline-offset-4" onClick={guest}>
-            {t("continueGuest")}
-          </button>
-          <p className="text-center text-xs text-muted">{t("guestNote")}</p>
-        </div>
+      {/* Two clear paths, right under the logo */}
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[340px]:grid-cols-2 md:mt-8">
+        <Link href="/auth?tab=signup" className="btn-primary !h-auto flex-col !gap-1 !py-4 text-center">
+          <UserPlus className="h-6 w-6" aria-hidden />
+          <span className="text-lg font-bold">{t("imNew")}</span>
+          <span className="text-sm font-medium opacity-80">{t("imNewSub")}</span>
+        </Link>
+        <Link href="/auth" className="btn-ghost !h-auto flex-col !gap-1 !py-4 text-center">
+          <LogIn className="h-6 w-6" aria-hidden />
+          <span className="text-lg font-bold">{t("returning")}</span>
+          <span className="text-sm font-medium text-muted">{t("returningSub")}</span>
+        </Link>
       </div>
+      <p className="mt-3 text-center text-sm">
+        <span className="text-muted">{t("orGuest")}</span>{" "}
+        <button type="button" onClick={guest} className="font-semibold text-forest underline underline-offset-4">
+          {t("continueGuest")}
+        </button>
+      </p>
+      <p className="mt-1 text-center text-xs text-muted">{t("guestNote")}</p>
+
+      {/* Phone: short intro slides, below the choices */}
+      <section className="mt-6 border-t border-line pt-5 md:hidden" aria-roledescription="carousel" aria-label={t("howItWorks")}>
+        <p className="text-center text-xs font-semibold uppercase tracking-wide text-muted">{t("howItWorks")}</p>
+        <div className="mt-3 flex items-center gap-3">
+          <button type="button" onClick={() => setI((i + SLIDES.length - 1) % SLIDES.length)} className="btn-ghost !min-h-11 !w-11 shrink-0 !p-0" aria-label="Previous">
+            <ChevronLeft className="h-5 w-5" aria-hidden />
+          </button>
+          <div className="min-w-0 flex-1 text-center">
+            <div className={`mx-auto flex h-20 w-20 items-center justify-center rounded-3xl text-forest [&_svg]:h-10 [&_svg]:w-10 ${SLIDES[i].tint}`}>{SLIDES[i].icon}</div>
+            <h2 className="mt-3 text-lg font-semibold" aria-live="polite">
+              {t(SLIDES[i].title)}
+            </h2>
+            <p className="mt-1 text-sm text-muted">{t(SLIDES[i].body)}</p>
+          </div>
+          <button type="button" onClick={() => setI((i + 1) % SLIDES.length)} className="btn-ghost !min-h-11 !w-11 shrink-0 !p-0" aria-label={t("next")}>
+            <ChevronRight className="h-5 w-5" aria-hidden />
+          </button>
+        </div>
+        <div className="mt-4 flex justify-center gap-1.5">
+          {SLIDES.map((_, n) => (
+            <button key={n} type="button" onClick={() => setI(n)} aria-label={`${n + 1} / ${SLIDES.length}`} className={`h-1.5 rounded-full transition-all ${n === i ? "w-6 bg-forest" : "w-1.5 bg-line"}`} />
+          ))}
+        </div>
+      </section>
     </AuthLayout>
   );
 }
