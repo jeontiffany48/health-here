@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     // ---- suggestions while typing ----
     const q = (sp.get("q") ?? "").trim().slice(0, 120);
-    if (q.length < 3) return NextResponse.json({ suggestions: [] });
+    if (q.length < 4) return NextResponse.json({ suggestions: [] });
     const lat = Number(sp.get("lat"));
     const lng = Number(sp.get("lng"));
     const near = Number.isFinite(lat) && Number.isFinite(lng) && sp.get("lat") !== null;

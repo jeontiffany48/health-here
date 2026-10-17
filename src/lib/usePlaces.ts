@@ -2,9 +2,50 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { insuranceStatusFor } from "./insuranceMatch";
+import { distanceKm } from "./geo";
 import type { LatLng, Place, PlaceKind, PlacesResponse, WebsiteScan } from "./types";
 
 const SCAN_CONCURRENCY = 3;
+
+// ---- Cost savers ----
+// 1) Search from a point rounded to ~100 m, so small GPS jitter doesn't count as a "new" search.
+// 2) Reuse the same search on this device for 1 hour instead of asking Google again.
+const CACHE_PREFIX = "hh-places:";
+const CACHE_MS = 60 * 60 * 1000;
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+function readCache(key: string): PlacesResponse | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const { at, data } = JSON.parse(raw) as { at: number; data: PlacesResponse };
+    if (Date.now() - at > CACHE_MS) {
+      localStorage.removeItem(CACHE_PREFIX + key);
+      return null;
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+function writeCache(key: string, data: PlacesResponse) {
+  try {
+    // keep the cache small: drop expired entries first
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(CACHE_PREFIX)) {
+        try {
+          if (Date.now() - JSON.parse(localStorage.getItem(k) || "{}").at > CACHE_MS) localStorage.removeItem(k);
+        } catch {
+          localStorage.removeItem(k);
+        }
+      }
+    }
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ at: Date.now(), data }));
+  } catch {
+    /* storage full or blocked — just skip caching */
+  }
+}
 
 /**
  * Loads places near a location. Then, for places with a website but no insurance data yet,
@@ -25,12 +66,31 @@ export function usePlaces(kind: PlaceKind, query: string, location: LatLng | nul
   useEffect(() => {
     if (lat == null || lng == null) return;
     const ctrl = new AbortController();
+    const qLat = round3(lat);
+    const qLng = round3(lng);
+    const key = `${kind}|${query}|${qLat}|${qLng}`;
+    // Distances from the exact spot (the search itself used the rounded one); statuses for the current plan.
+    const finish = (d: PlacesResponse) => ({
+      ...d,
+      places: d.places.map((p) => ({ ...p, distanceKm: distanceKm({ lat, lng }, p.location), insuranceStatus: insuranceStatusFor(p, insuranceRef.current) })),
+    });
+
+    const cached = readCache(key);
+    if (cached) {
+      setError(false);
+      setLoading(false);
+      const d = finish(cached);
+      setData(d);
+      startScans(d.places, ctrl.signal);
+      return () => ctrl.abort();
+    }
+
     const now = new Date();
     const params = new URLSearchParams({
       kind,
       q: query,
-      lat: lat.toFixed(5),
-      lng: lng.toFixed(5),
+      lat: String(qLat),
+      lng: String(qLng),
       insurance,
       dow: String(now.getDay()),
       mins: String(now.getHours() * 60 + now.getMinutes()),
@@ -40,8 +100,10 @@ export function usePlaces(kind: PlaceKind, query: string, location: LatLng | nul
     fetch(`/api/places?${params}`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d: PlacesResponse) => {
-        setData(d);
-        startScans(d.places, ctrl.signal);
+        if (d.source === "google") writeCache(key, d);
+        const f = finish(d);
+        setData(f);
+        startScans(f.places, ctrl.signal);
       })
       .catch((e) => {
         if (e?.name !== "AbortError") setError(true);
@@ -91,6 +153,6 @@ export function usePlaces(kind: PlaceKind, query: string, location: LatLng | nul
     for (let i = 0; i < SCAN_CONCURRENCY; i++) worker();
   }
 
-  const retry = useCallback(() => setNonce((n) => n + 1), []);
+  const retry = useCallback(() => setNonce((n) => n + 1), []); // errors are never cached, so retry always asks again
   return { data, loading, error, retry, scanning };
 }

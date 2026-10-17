@@ -109,7 +109,7 @@ function Emergency() {
           {loading && !data && <div className="card h-32 animate-pulse bg-surface" />}
           <div className="grid gap-3 xl:grid-cols-2">
             {ers.map((p, i) => (
-              <PlaceCard key={p.id} place={p} index={i} er active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} />
+              <PlaceCard key={p.id} place={p} index={i} er active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} photo={false} />
             ))}
           </div>
         </div>

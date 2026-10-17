@@ -27,6 +27,8 @@ type Ctx = {
   /** Guests confirm their location every time the app opens; accounts reuse their saved choice. */
   needsLocationPrompt: boolean;
   confirmLocation: () => void;
+  /** When the current location was last saved (it's reused for 7 days to avoid repeat lookups). */
+  locationSavedAt: number | null;
   /** Device location switch. Off = the app never reads GPS; searches use a typed address. */
   deviceLocationOn: boolean;
   turnOffDeviceLocation: () => Promise<void>;
@@ -88,6 +90,36 @@ function safeSet(store: "local" | "session", key: string, value: string | null) 
   }
 }
 
+
+// ---- Saved location (this device only, 7 days) ----
+const SAVED_LOC_KEY = "hh-saved-location";
+const SAVED_LOC_DAYS = 7;
+type SavedLocation = LatLng & { accuracy: number | null; label: string | null; savedAt: number };
+
+function readSavedLocation(): SavedLocation | null {
+  const raw = safeGet("local", SAVED_LOC_KEY);
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw) as SavedLocation;
+    if (!Number.isFinite(s.lat) || !Number.isFinite(s.lng)) return null;
+    if (Date.now() - s.savedAt > SAVED_LOC_DAYS * 86400_000) return null; // expired: ask again
+    return s;
+  } catch {
+    return null;
+  }
+}
+function writeSavedLocation(loc: Omit<SavedLocation, "savedAt">): SavedLocation | null {
+  const prev = readSavedLocation();
+  const moved = !prev || Math.abs(prev.lat - loc.lat) > 0.0005 || Math.abs(prev.lng - loc.lng) > 0.0005;
+  if (!moved && prev && prev.label === loc.label) return null;
+  const next = { ...loc, savedAt: moved || !prev ? Date.now() : prev.savedAt };
+  safeSet("local", SAVED_LOC_KEY, JSON.stringify(next));
+  return next;
+}
+function clearSavedLocation() {
+  safeSet("local", SAVED_LOC_KEY, null);
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>("loading");
   const [email, setEmail] = useState<string | null>(null);
@@ -96,8 +128,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [deviceLoc, setDeviceLoc] = useState<(LatLng & { accuracy: number }) | null>(null);
   const watchRef = useRef<number | null>(null);
   const [locStatus, setLocStatus] = useState<LocStatus>("idle");
-  // In memory only: resets on every visit/reload, so guests are asked again each time.
+  // Location is saved on this device for 7 days, so people aren't asked (and searches can repeat
+  // from the same spot, which lets results be reused) until it expires or they tap "Change".
+  const [savedLoc, setSavedLoc] = useState<SavedLocation | null>(null);
   const [locationConfirmed, setLocationConfirmed] = useState(false);
+  useEffect(() => {
+    const s = readSavedLocation();
+    if (s) {
+      setSavedLoc(s);
+      setLocationConfirmed(true);
+      setLocStatus("ok");
+    }
+  }, []);
   const confirmLocation = useCallback(() => setLocationConfirmed(true), []);
   const profileRef = useRef(profile);
   profileRef.current = profile;
@@ -259,16 +301,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Once a profile is ready, get the device location automatically if that's the chosen mode.
   useEffect(() => {
-    // Accounts only — guests are asked every visit (see needsLocationPrompt).
-    if (mode === "user" && profile.onboarded && profile.locationMode === "device" && locStatus === "idle") {
+    // Accounts only, and only when there's no saved location from the last 7 days.
+    if (mode === "user" && profile.onboarded && profile.locationMode === "device" && locStatus === "idle" && !savedLoc) {
       requestDeviceLocation();
     }
-  }, [mode, profile.onboarded, profile.locationMode, locStatus, requestDeviceLocation]);
+  }, [mode, profile.onboarded, profile.locationMode, locStatus, requestDeviceLocation, savedLoc]);
 
   const manual = profile.locationMode === "manual" ? profile.manualLocation : null;
-  const location = manual ? { lat: manual.lat, lng: manual.lng } : deviceLoc ?? profile.manualLocation ?? null;
-  const locationLabel = manual?.label ?? (deviceLoc ? null : profile.manualLocation?.label ?? null);
-  const locationAccuracy = manual || !deviceLoc ? null : deviceLoc.accuracy;
+  const saved = profile.locationMode === "device" || mode === "guest" ? savedLoc : null;
+  const location = manual ? { lat: manual.lat, lng: manual.lng } : deviceLoc ?? saved ?? profile.manualLocation ?? null;
+  const locationLabel = manual?.label ?? (deviceLoc ? null : saved?.label ?? profile.manualLocation?.label ?? null);
+  const locationAccuracy = manual ? null : deviceLoc ? deviceLoc.accuracy : saved ? saved.accuracy : null;
+  const locationSavedAt = !manual && !deviceLoc && saved ? saved.savedAt : null;
+
+  // Save whatever location is in use (keeps the original date if it hasn't moved, so 7 days really means 7 days).
+  useEffect(() => {
+    if (!location || !(locationConfirmed || mode === "user")) return;
+    const next = writeSavedLocation({ lat: location.lat, lng: location.lng, accuracy: locationAccuracy, label: locationLabel });
+    if (next) setSavedLoc(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location?.lat, location?.lng, locationConfirmed, mode]);
 
   const needsLocationPrompt =
     profile.onboarded &&
@@ -282,6 +334,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (watchRef.current != null) navigator.geolocation?.clearWatch(watchRef.current);
     watchRef.current = null;
     setDeviceLoc(null);
+    clearSavedLocation();
+    setSavedLoc(null);
     setLocStatus("idle");
     await updateProfile({ locationMode: "manual" });
   }, [updateProfile]);
@@ -306,12 +360,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       requestDeviceLocation,
       needsLocationPrompt,
       confirmLocation,
+      locationSavedAt,
       deviceLocationOn,
       turnOffDeviceLocation,
       t,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, needsLocationPrompt, confirmLocation, deviceLocationOn, turnOffDeviceLocation, t],
+    [mode, email, profile, updateProfile, startGuest, exitGuest, signOut, deleteAccount, loadUser, location?.lat, location?.lng, locationLabel, locationAccuracy, locStatus, manual, requestDeviceLocation, needsLocationPrompt, confirmLocation, locationSavedAt, deviceLocationOn, turnOffDeviceLocation, t],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

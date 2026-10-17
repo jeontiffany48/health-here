@@ -10,7 +10,8 @@ const addressCache = new Map<string, string>();
 
 /** "Searching near: 12 Oak St · accurate to ~30 ft  [Change]" — makes the search center obvious and easy to fix. */
 export function LocationBar({ className = "" }: { className?: string }) {
-  const { t, profile, location, locationLabel, locationAccuracy, locStatus } = useApp();
+  const { t, profile, location, locationLabel, locationAccuracy, locStatus, locationSavedAt } = useApp();
+  const daysLeft = locationSavedAt ? Math.max(0, 7 - Math.floor((Date.now() - locationSavedAt) / 86400_000)) : null;
   const [open, setOpen] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
 
@@ -51,6 +52,7 @@ export function LocationBar({ className = "" }: { className?: string }) {
                 : approximate
                   ? t("approxWarn", { d: formatAccuracy(locationAccuracy, profile.language) })
                   : t("accurateTo", { d: formatAccuracy(locationAccuracy, profile.language) })}
+              {daysLeft != null && <> · {daysLeft <= 1 ? t("savedLocationToday") : t("savedLocation", { d: daysLeft })}</>}
             </p>
           )}
         </div>

@@ -38,7 +38,7 @@ export function LocationPicker({ onDone }: { onDone?: () => void }) {
   // Live suggestions (debounced)
   useEffect(() => {
     const text = q.trim();
-    if (text.length < 3) {
+    if (text.length < 4) {
       setSuggestions([]);
       setNoMatch(false);
       return;
@@ -60,7 +60,7 @@ export function LocationPicker({ onDone }: { onDone?: () => void }) {
         /* typing again aborts the previous request */
       }
       setSearching(false);
-    }, 250);
+    }, 400);
     return () => {
       clearTimeout(id);
       ctrl.abort();

@@ -7,7 +7,7 @@ import { formatDistance } from "@/lib/geo";
 import { insuranceLabel } from "@/lib/insurance";
 import type { Place } from "@/lib/types";
 
-export function PlaceCard({ place, index, active, onSelect, er = false, checking = false }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean }) {
+export function PlaceCard({ place, index, active, onSelect, er = false, checking = false, photo = true }: { place: Place; index: number; active?: boolean; onSelect?: () => void; er?: boolean; checking?: boolean; photo?: boolean }) {
   const { t, profile } = useApp();
   const [showHours, setShowHours] = useState(false);
   const plan = insuranceLabel(profile.insurance);
@@ -20,7 +20,7 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
       onFocus={onSelect}
     >
       <div className="flex gap-3">
-        <PlaceThumb place={place} index={index} er={er} />
+        <PlaceThumb place={place} index={index} er={er} allowPhoto={photo} />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold leading-snug">{place.name}</h3>
           <p className="text-sm text-muted">
@@ -83,11 +83,12 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
 }
 
 /** Google Maps photo of the place (with the author credit Google requires), or an icon if there's none. */
-function PlaceThumb({ place, index, er }: { place: Place; index: number; er: boolean }) {
+function PlaceThumb({ place, index, er, allowPhoto }: { place: Place; index: number; er: boolean; allowPhoto: boolean }) {
   const [failed, setFailed] = useState(false);
   const isDoctor = /doctor|physician|dentist|^dr\.?\s/i.test(`${place.primaryType ?? ""} ${place.types.join(" ")} ${place.name}`);
   const Icon = er ? Siren : isDoctor ? Stethoscope : Building2;
-  const showPhoto = place.photo && !failed;
+  // Each photo is a paid lookup, so only the top results show one (see PHOTO_LIMIT in Locator).
+  const showPhoto = allowPhoto && place.photo && !failed;
   return (
     <div className="w-[72px] shrink-0 sm:w-20">
       <div className="relative h-[72px] w-[72px] sm:h-20 sm:w-20">

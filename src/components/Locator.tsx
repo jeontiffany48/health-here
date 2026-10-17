@@ -20,6 +20,9 @@ const MapView = dynamic(() => import("./MapView"), {
 
 type Kind = "facility" | "doctor";
 
+// Photos cost money per lookup; show them only for the top results people actually look at.
+const PHOTO_LIMIT = 5;
+
 /** Locator screen for one kind of place. Always has a clear way back to the home dashboard. */
 export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecialty?: string }) {
   const { t, profile, location, locationAccuracy, locStatus } = useApp();
@@ -163,7 +166,7 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
                 ) : (
                   <div className={`flex flex-col gap-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
                     {places.map((p, i) => (
-                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} />
+                      <PlaceCard key={p.id} place={p} index={i} active={p.id === activeId} onSelect={() => setActiveId(p.id)} checking={scanning.has(p.id)} photo={i < PHOTO_LIMIT} />
                     ))}
                   </div>
                 )}
