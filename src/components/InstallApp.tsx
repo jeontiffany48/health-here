@@ -92,6 +92,10 @@ export function InstallApp({ className = "" }: { className?: string }) {
                   {t("installIos2")} <SquarePlus className="inline h-4 w-4 align-[-2px]" aria-hidden />
                 </span>
               </li>
+              <li className="flex items-start gap-2">
+                <span className="font-semibold">3.</span>
+                <span>{t("installIos3")}</span>
+              </li>
             </ol>
           ) : (
             <p className="mt-2">
