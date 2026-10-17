@@ -45,6 +45,32 @@ html[data-contrast="high"] .field {
   outline: 3px solid #1f3d2c;
   outline-offset: 2px;
 }
+/* Buttons, chips and links: highlight the rounded border itself instead of a square outline box */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+.chip:focus-visible {
+  outline: none;
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px rgb(31 61 44 / 0.35);
+}
+/* A dropdown inside a chip: light up the chip's border, not the dropdown's own box */
+.chip select:focus-visible {
+  box-shadow: none;
+}
+.chip:has(select:focus-visible) {
+  border-color: var(--color-forest);
+  box-shadow: 0 0 0 3px rgb(31 61 44 / 0.35);
+}
+.chip select {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button,
+a,
+.chip {
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* Reusable pieces */
 @utility btn {

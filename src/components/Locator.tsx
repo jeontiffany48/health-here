@@ -101,22 +101,22 @@ export function Locator({ kind, initialSpecialty }: { kind: Kind; initialSpecial
           </label>
         )}
 
-        <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:px-0">
+        <div className="mt-3 flex flex-wrap gap-2">
           <button className="chip" aria-pressed={inNetwork} onClick={() => setInNetwork(!inNetwork)} disabled={!profile.insurance}>
             {t("inNetworkOnly")}
           </button>
           <button className="chip" aria-pressed={openNow} onClick={() => setOpenNow(!openNow)}>
             {t("openNow")}
           </button>
-          <label className="chip relative cursor-pointer pr-8">
+          <label className="chip relative cursor-pointer">
             <span className="sr-only">{t("sortBy")}</span>
             <ArrowUpDown className="h-4 w-4" aria-hidden />
-            <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="cursor-pointer appearance-none bg-transparent font-medium outline-none" aria-label={t("sortBy")}>
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortMode)} className="cursor-pointer appearance-none bg-transparent pr-5 font-medium outline-none" aria-label={t("sortBy")}>
               <option value="relevance">{t("sortRelevance")}</option>
               <option value="distance">{t("sortDistance")}</option>
               <option value="rating">{t("sortRating")}</option>
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 h-4 w-4" aria-hidden />
+            <ChevronDown className="pointer-events-none absolute right-3 h-4 w-4" aria-hidden />
           </label>
         </div>
         {/* Phone only: switch between list and map */}
