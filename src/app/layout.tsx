@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { BackToApp } from "@/components/BackToApp";
 
 
 export const metadata: Metadata = {
@@ -22,7 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${GeistSans.variable} antialiased`}>
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          {children}
+          <BackToApp />
+        </AppProvider>
       </body>
     </html>
   );

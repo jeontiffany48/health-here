@@ -38,6 +38,8 @@ type Ctx = {
 const AppContext = createContext<Ctx | null>(null);
 
 const GUEST_KEY = "hh-guest-profile";
+export const RETURNING_KEY = "hh-has-account";
+const PENDING_KEY = "hh-pending-profile"; // onboarding answers waiting for a new account (1 day)
 const LANG_KEY = "hh-lang"; // language picked before signing in (not personal data)
 
 type Row = {
@@ -122,6 +124,10 @@ function clearSavedLocation() {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>("loading");
+  // Remember this device has an account, so next time we go straight to sign-in (not the intro slides).
+  useEffect(() => {
+    if (mode === "user") safeSet("local", RETURNING_KEY, "1");
+  }, [mode]);
   const [email, setEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
@@ -153,7 +159,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setUserId(data.user.id);
         const { data: row } = await sb.from("profiles").select("*").eq("id", data.user.id).maybeSingle();
         const metaName = (data.user.user_metadata?.full_name as string | undefined) ?? "";
-        setProfile(row ? fromRow(row) : { ...DEFAULT_PROFILE, fullName: metaName, language: (safeGet("local", LANG_KEY) as Profile["language"]) || "en" });
+        // New account made right after onboarding as a guest: keep those answers.
+        // (also kept briefly in localStorage, for an email-confirmation link that opens in a new tab)
+        let pendingProfile: string | null = null;
+        try {
+          const pending = JSON.parse(safeGet("local", PENDING_KEY) ?? "null");
+          if (pending && Date.now() - pending.at < 86_400_000) pendingProfile = JSON.stringify(pending.profile);
+        } catch {}
+        const guestRaw = safeGet("session", GUEST_KEY) ?? pendingProfile;
+        const guestProfile = guestRaw ? ({ ...DEFAULT_PROFILE, ...JSON.parse(guestRaw) } as Profile) : null;
+        safeSet("session", GUEST_KEY, null); // signed in now — the temporary guest profile is done
+        safeSet("local", PENDING_KEY, null);
+        if (!row && guestProfile?.onboarded) {
+          const carried = { ...guestProfile, fullName: guestProfile.fullName || metaName };
+          await sb.from("profiles").upsert({ id: data.user.id, ...toRow(carried), updated_at: new Date().toISOString() });
+          setProfile(carried);
+        } else setProfile(row ? fromRow(row) : { ...DEFAULT_PROFILE, fullName: metaName, language: (safeGet("local", LANG_KEY) as Profile["language"]) || "en" });
         setMode("user");
         return;
       }
@@ -178,6 +199,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") loadUser();
     });
     return () => data.subscription.unsubscribe();
+  }, [loadUser]);
+
+  // iPhone home-screen app: Google sign-in finishes in a browser sheet on top of the app.
+  // When the person taps "Done" and comes back, pick up the new login right away.
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState === "visible" && modeRef.current !== "user") loadUser();
+    };
+    document.addEventListener("visibilitychange", check);
+    window.addEventListener("focus", check);
+    window.addEventListener("pageshow", check);
+    return () => {
+      document.removeEventListener("visibilitychange", check);
+      window.removeEventListener("focus", check);
+      window.removeEventListener("pageshow", check);
+    };
   }, [loadUser]);
 
   // Accessibility + language applied to the whole document.

@@ -19,11 +19,11 @@ export default function AuthPage() {
 }
 
 function AuthInner() {
-  const { t, mode, profile, refreshSession, exitGuest } = useApp();
+  const { t, mode, profile, refreshSession } = useApp();
   const router = useRouter();
   const params = useSearchParams();
   const [tab, setTab] = useState<"login" | "signup">(params.get("tab") === "signup" ? "signup" : "login");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(mode === "guest" ? profile.fullName : ""); // filled in from onboarding
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
@@ -31,6 +31,10 @@ function AuthInner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(params.get("error") === "link" ? t("linkInvalid") : null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode === "guest" && profile.fullName) setName((n) => n || profile.fullName);
+  }, [mode, profile.fullName]);
 
   useEffect(() => {
     if (mode === "user") router.replace(profile.onboarded ? "/home" : "/onboarding");
@@ -50,7 +54,6 @@ function AuthInner() {
     setBusy(true);
     setError(null);
     setNotice(null);
-    if (mode === "guest") exitGuest(); // signing in replaces the temporary guest profile
     if (tab === "login") {
       const { error } = await sb.auth.signInWithPassword({ email, password: pw });
       if (error) setError(error.message);
@@ -81,7 +84,15 @@ function AuthInner() {
   async function google() {
     const sb = getSupabase();
     if (!sb) return;
-    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=/` } });
+    // From the iPhone home-screen app, Google opens in a browser sheet; finish on a page that sends people back.
+    const fromApp = isHomeScreenApp();
+    const next = fromApp ? "/auth/done" : "/";
+    if (fromApp) {
+      try {
+        localStorage.setItem("hh-oauth-from-app", String(Date.now()));
+      } catch {}
+    }
+    await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` } });
   }
 
   return (
@@ -203,4 +214,8 @@ function GoogleG() {
       <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
     </svg>
   );
+}
+
+function isHomeScreenApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }

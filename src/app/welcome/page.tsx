@@ -35,6 +35,12 @@ export default function Welcome() {
     startGuest();
     router.push("/onboarding");
   };
+  // "I'm new": onboarding first; creating an account is offered at the end (answers carry over).
+  const newUser = () => {
+    startingGuest.current = true;
+    startGuest();
+    router.push("/onboarding?new=1");
+  };
 
   return (
     <AuthLayout>
@@ -64,11 +70,11 @@ export default function Welcome() {
 
       {/* Two clear paths, right under the logo */}
       <div className="mt-5 grid grid-cols-1 gap-3 min-[340px]:grid-cols-2 md:mt-8">
-        <Link href="/auth?tab=signup" className="btn-primary !h-auto flex-col !gap-1 !py-4 text-center">
+        <button type="button" onClick={newUser} className="btn-primary !h-auto flex-col !gap-1 !py-4 text-center">
           <UserPlus className="h-6 w-6" aria-hidden />
           <span className="text-lg font-bold">{t("imNew")}</span>
           <span className="text-sm font-medium opacity-80">{t("imNewSub")}</span>
-        </Link>
+        </button>
         <Link href="/auth" className="btn-ghost !h-auto flex-col !gap-1 !py-4 text-center">
           <LogIn className="h-6 w-6" aria-hidden />
           <span className="text-lg font-bold">{t("returning")}</span>
