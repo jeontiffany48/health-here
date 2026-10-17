@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Clock, ExternalLink, Globe, Loader2, Navigation, Phone, ShieldAlert, ShieldCheck, ShieldQuestion, Star } from "lucide-react";
+import { Building2, ChevronDown, Clock, ExternalLink, Globe, Loader2, Navigation, Phone, ShieldAlert, ShieldCheck, ShieldQuestion, Siren, Star, Stethoscope } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { formatDistance } from "@/lib/geo";
 import { insuranceLabel } from "@/lib/insurance";
@@ -20,9 +20,7 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
       onFocus={onSelect}
     >
       <div className="flex gap-3">
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${er ? "bg-sos" : "bg-forest"}`} aria-hidden>
-          {index + 1}
-        </span>
+        <PlaceThumb place={place} index={index} er={er} />
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold leading-snug">{place.name}</h3>
           <p className="text-sm text-muted">
@@ -81,6 +79,49 @@ export function PlaceCard({ place, index, active, onSelect, er = false, checking
         </div>
       </div>
     </article>
+  );
+}
+
+/** Google Maps photo of the place (with the author credit Google requires), or an icon if there's none. */
+function PlaceThumb({ place, index, er }: { place: Place; index: number; er: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const isDoctor = /doctor|physician|dentist|^dr\.?\s/i.test(`${place.primaryType ?? ""} ${place.types.join(" ")} ${place.name}`);
+  const Icon = er ? Siren : isDoctor ? Stethoscope : Building2;
+  const showPhoto = place.photo && !failed;
+  return (
+    <div className="w-[72px] shrink-0 sm:w-20">
+      <div className="relative h-[72px] w-[72px] sm:h-20 sm:w-20">
+        {showPhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/place-photo?name=${encodeURIComponent(place.photo!.name)}&w=200`}
+            alt={`Photo of ${place.name}`}
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+            className="h-full w-full rounded-xl bg-surface object-cover"
+          />
+        ) : (
+          <div className={`flex h-full w-full items-center justify-center rounded-xl ${er ? "bg-[#fde3e3] text-sos" : isDoctor ? "bg-[#dfe8ff] text-forest" : "bg-brand/50 text-forest"}`}>
+            <Icon className="h-8 w-8" aria-hidden />
+          </div>
+        )}
+        <span className={`absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white ${er ? "bg-sos" : "bg-forest"}`} aria-hidden>
+          {index + 1}
+        </span>
+      </div>
+      {showPhoto && place.photo!.author && (
+        <p className="mt-0.5 truncate text-[10px] leading-tight text-muted" title={`Photo: ${place.photo!.author} · Google Maps`}>
+          {place.photo!.authorUri ? (
+            <a href={place.photo!.authorUri} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              © {place.photo!.author}
+            </a>
+          ) : (
+            <>© {place.photo!.author}</>
+          )}
+        </p>
+      )}
+    </div>
   );
 }
 

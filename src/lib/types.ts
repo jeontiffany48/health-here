@@ -65,6 +65,8 @@ export type Place = {
   rank: number;
   primaryType: string | null;
   types: string[];
+  /** First Google Maps photo of the place, if any (shown with its required author credit). */
+  photo: { name: string; author: string | null; authorUri: string | null } | null;
 };
 
 export type PlacesResponse = {

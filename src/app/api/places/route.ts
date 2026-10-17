@@ -87,6 +87,7 @@ function fromSample(p: RawPlace, center: { lat: number; lng: number }, dow: numb
     rank,
     primaryType: null,
     types: [],
+    photo: null,
   };
 }
 
@@ -107,6 +108,7 @@ type GPlace = {
   primaryType?: string;
   types?: string[];
   businessStatus?: string;
+  photos?: { name: string; authorAttributions?: { displayName?: string; uri?: string }[] }[];
 };
 
 async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat: number; lng: number }, jsDow: number): Promise<Place[]> {
@@ -133,6 +135,7 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         "places.primaryType",
         "places.types",
         "places.businessStatus",
+        "places.photos",
       ].join(","),
     },
     body: JSON.stringify({
@@ -174,6 +177,13 @@ async function fromGoogle(key: string, kind: PlaceKind, q: string, center: { lat
         rank: i,
         primaryType: g.primaryType ?? null,
         types: g.types ?? [],
+        photo: g.photos?.[0]
+          ? {
+              name: g.photos[0].name,
+              author: g.photos[0].authorAttributions?.[0]?.displayName ?? null,
+              authorUri: g.photos[0].authorAttributions?.[0]?.uri ?? null,
+            }
+          : null,
       };
     })
     .filter((p) => p.distanceKm < 40);
